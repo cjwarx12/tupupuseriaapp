@@ -4,7 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
+      <Text style={styles.emoji}>🫓</Text>
+      <Text style={styles.titulo}>TuPupuseriaApp</Text>
+      <Text style={styles.subtitulo}>Las mejores pupuserías cerca de ti</Text>
       <StatusBar style="auto" />
     </View>
   );
@@ -13,8 +15,24 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#E8210A',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  titulo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  subtitulo: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
