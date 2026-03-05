@@ -1,5 +1,5 @@
-import LoginScreen from './screens/LoginScreen';
+import AppNavigator from './AppNavigator';
 
 export default function App() {
-  return <LoginScreen />;
+  return <AppNavigator />;
 }
