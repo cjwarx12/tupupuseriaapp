@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
     return (
         <View style={styles.container}>
 
@@ -14,10 +14,11 @@ export default function LoginScreen() {
         {/* Formulario */}
         <View style={styles.formulario}>
             <TextInput
-                style={styles.input}
-                placeholder="📧  Correo electrónico"
-                placeholderTextColor="#9A8A80"
-                keyboardType="email-address"
+            style={styles.input}
+            placeholder="📱  Número de teléfono"
+            placeholderTextColor="#9A8A80"
+            keyboardType="phone-pad"
+            maxLength={8}
             />
             <TextInput
                 style={styles.input}
@@ -30,7 +31,7 @@ export default function LoginScreen() {
             <Text style={styles.botonPrincipalTexto}>Ingresar</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.botonSecundario}>
+            <TouchableOpacity style={styles.botonSecundario} onPress={() => navigation.navigate('Registro')}>
             <Text style={styles.botonSecundarioTexto}>Crear cuenta nueva</Text>
             </TouchableOpacity>
 
