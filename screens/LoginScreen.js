@@ -17,7 +17,6 @@ const ingresar = async () => {
         try {
         const correo = telefonoACorreo(telefono);
         await signInWithEmailAndPassword(auth, correo, contrasena);
-        navigation.replace('Home');
         } catch (error) {
         Alert.alert('Error', 'Número o contraseña incorrectos');
         }
