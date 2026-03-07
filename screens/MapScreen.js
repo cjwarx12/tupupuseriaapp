@@ -5,32 +5,53 @@ import * as Location from 'expo-location';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+};
+
 export default function MapScreen({ navigation }) {
     const [ubicacion, setUbicacion] = useState(null);
-    const [error, setError] = useState(null);
     const [pupuserias, setPupuserias] = useState([]);
     const [cargando, setCargando] = useState(true);
 
     useEffect(() => {
-        obtenerUbicacion();
-        cargarPupuserias();
+        iniciar();
     }, []);
 
-    const obtenerUbicacion = async () => {
+    const iniciar = async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            setError('Se necesita permiso de ubicación para mostrar el mapa');
+            setCargando(false);
             return;
         }
         const loc = await Location.getCurrentPositionAsync({});
-        setUbicacion(loc.coords);
+        const coords = loc.coords;
+        setUbicacion(coords);
+        await cargarPupuserias(coords);
     };
 
-    const cargarPupuserias = async () => {
+    const cargarPupuserias = async (coords) => {
         try {
             const snapshot = await getDocs(collection(db, 'pupuserias'));
-            const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setPupuserias(lista);
+            const todas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const cercanas = todas.filter(p => {
+                const distancia = calcularDistancia(
+                    coords.latitude, coords.longitude,
+                    p.latitud, p.longitud
+                );
+                return distancia <= 1;
+            });
+
+            setPupuserias(cercanas);
         } catch (error) {
             console.log('Error cargando pupuserías:', error);
         }
@@ -39,7 +60,6 @@ export default function MapScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-
             <View style={styles.mapaContainer}>
                 {!ubicacion ? (
                     <View style={styles.centro}>
@@ -71,16 +91,22 @@ export default function MapScreen({ navigation }) {
             </View>
 
             <View style={styles.listaContainer}>
-                <Text style={styles.listaTitulo}>Pupuserías cercanas</Text>
+                <Text style={styles.listaTitulo}>
+                    Pupuserías cercanas {!cargando && `(${pupuserias.length})`}
+                </Text>
                 {cargando ? (
-                    <ActivityIndicator size='small' color='#E8210A' />
+                    <ActivityIndicator size='small' color='#E8210A' style={{ marginTop:20 }} />
                 ) : (
                     <FlatList
                         data={pupuserias}
                         keyExtractor={item => item.id}
                         contentContainerStyle={styles.lista}
                         ListEmptyComponent={
-                            <Text style={styles.vacio}>No hay pupuserías disponibles</Text>
+                            <View style={styles.vacioCentro}>
+                                <Text style={styles.vacioEmoji}>🫓</Text>
+                                <Text style={styles.vacioTexto}>No hay pupuserías cerca de ti</Text>
+                                <Text style={styles.vacioSub}>Pronto más pupuserías de tu zona se unirán a TuPupuseriaApp</Text>
+                            </View>
                         }
                         renderItem={({ item }) => (
                             <TouchableOpacity style={styles.tarjeta}
@@ -95,7 +121,6 @@ export default function MapScreen({ navigation }) {
                     />
                 )}
             </View>
-
         </View>
     );
 }
@@ -116,5 +141,8 @@ const styles = StyleSheet.create({
     tarjetaNombre: { fontSize:15, fontWeight:'bold', color:'#1A0F08', marginBottom:3 },
     tarjetaDireccion: { fontSize:13, color:'#6B5E57' },
     tarjetaFlecha: { fontSize:20, color:'#E8210A', fontWeight:'bold' },
-    vacio: { textAlign:'center', color:'#6B5E57', fontSize:15, marginTop:20 },
+    vacioCentro: { alignItems:'center', marginTop:30 },
+    vacioEmoji: { fontSize:40, marginBottom:12 },
+    vacioTexto: { fontSize:16, fontWeight:'bold', color:'#1A0F08', marginBottom:6 },
+    vacioSub: { fontSize:13, color:'#6B5E57', textAlign:'center' },
 });
