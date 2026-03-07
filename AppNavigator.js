@@ -14,6 +14,14 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
     const [usuario, setUsuario] = useState(undefined);
+    const [mostrarSplash, setMostrarSplash] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMostrarSplash(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const unsuscribe = onAuthStateChanged(auth, (user) => {
@@ -22,10 +30,10 @@ export default function AppNavigator() {
         return unsuscribe;
     }, []);
 
-    if (usuario === undefined) {
+    if (mostrarSplash || usuario === undefined) {
         return (
             <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#E8210A' }}>
-                <ActivityIndicator size='large' color='#FFFFFF' />
+                <SplashScreen />
             </View>
         );
     }
@@ -40,7 +48,6 @@ export default function AppNavigator() {
                     </>
                 ) : (
                     <>
-                        <Stack.Screen name='Splash' component={SplashScreen} />
                         <Stack.Screen name='Login' component={LoginScreen} />
                         <Stack.Screen name='Registro' component={RegistroScreen} />
                     </>
