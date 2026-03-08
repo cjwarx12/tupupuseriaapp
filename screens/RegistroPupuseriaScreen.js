@@ -1,0 +1,254 @@
+import { useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, ScrollView, Alert, ActivityIndicator
+} from 'react-native';
+import * as Location from 'expo-location';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth, telefonoACorreo } from '../firebaseConfig';
+
+export default function RegistroPupuseriaScreen({ navigation }) {
+  const [nombre, setNombre] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [ubicacion, setUbicacion] = useState(null);
+  const [cargandoGps, setCargandoGps] = useState(false);
+  const [cargandoGuardar, setCargandoGuardar] = useState(false);
+
+  const capturarGPS = async () => {
+    setCargandoGps(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitamos acceso a tu ubicación para registrar tu pupusería.');
+        setCargandoGps(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setUbicacion(loc.coords);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo obtener la ubicación. Intenta de nuevo.');
+    }
+    setCargandoGps(false);
+  };
+
+  const registrar = async () => {
+    // Validaciones
+    if (!nombre.trim()) {
+      Alert.alert('Error', 'Ingresa el nombre de tu pupusería.');
+      return;
+    }
+    if (!direccion.trim()) {
+      Alert.alert('Error', 'Ingresa la dirección.');
+      return;
+    }
+    if (!telefono.trim() || telefono.length < 8) {
+      Alert.alert('Error', 'Ingresa un teléfono válido de 8 dígitos.');
+      return;
+    }
+    if (!contrasena || contrasena.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (!ubicacion) {
+      Alert.alert('Error', 'Primero captura tu ubicación GPS estando en tu pupusería.');
+      return;
+    }
+
+    setCargandoGuardar(true);
+    try {
+      // Paso 1 — crear cuenta del dueño en Firebase Auth
+      const correo = telefonoACorreo(telefono);
+      const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const uid = credencial.user.uid;
+
+      // Paso 2 — guardar la pupusería en Firestore con el UID del dueño
+      await addDoc(collection(db, 'pupuserias'), {
+        nombre: nombre.trim(),
+        direccion: direccion.trim(),
+        telefono: telefono.trim(),
+        latitud: ubicacion.latitude,
+        longitud: ubicacion.longitude,
+        dueno_uid: uid,
+        activa: true,
+        fecha_registro: serverTimestamp(),
+      });
+
+      // Paso 3 — ir al panel (AppNavigator detecta sesión y muestra bloque autenticado)
+      navigation.replace('PanelPupuseria', { nombre: nombre.trim() });
+
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        Alert.alert('Error', 'Este número de teléfono ya tiene una cuenta registrada.');
+      } else {
+        Alert.alert('Error', 'No se pudo registrar. Intenta de nuevo.');
+      }
+    }
+    setCargandoGuardar(false);
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      <TouchableOpacity style={styles.botonRegresar} onPress={() => navigation.goBack()}>
+        <Text style={styles.botonRegresarTexto}>← Regresar</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.titulo}>Registra tu{'\n'}Pupusería 🫓</Text>
+      <Text style={styles.subtitulo}>
+        Completa los datos estando físicamente en tu negocio para capturar la ubicación correcta.
+      </Text>
+
+      {/* Datos del negocio */}
+      <Text style={styles.seccionTitulo}>📍 Tu negocio</Text>
+
+      <View style={styles.grupo}>
+        <Text style={styles.label}>Nombre de la pupusería</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej: Pupusería La Bendición"
+          placeholderTextColor="#B0A098"
+          value={nombre}
+          onChangeText={setNombre}
+        />
+      </View>
+
+      <View style={styles.grupo}>
+        <Text style={styles.label}>Dirección</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej: Col. El Paraíso, San Salvador"
+          placeholderTextColor="#B0A098"
+          value={direccion}
+          onChangeText={setDireccion}
+        />
+      </View>
+
+      {/* GPS */}
+      <View style={styles.gpsBox}>
+        <Text style={styles.gpsLabel}>📍 Ubicación GPS</Text>
+        <Text style={styles.gpsDescripcion}>
+          Presiona el botón estando dentro o frente a tu pupusería.
+          Esta ubicación es la que verán los clientes en el mapa.
+        </Text>
+        {ubicacion ? (
+          <View style={styles.gpsConfirmado}>
+            <Text style={styles.gpsCheck}>✅ Ubicación capturada</Text>
+            <Text style={styles.gpsCoordenadas}>
+              {ubicacion.latitude.toFixed(5)}, {ubicacion.longitude.toFixed(5)}
+            </Text>
+            <TouchableOpacity onPress={capturarGPS}>
+              <Text style={styles.gpsRecapturar}>Volver a capturar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.botonGps}
+            onPress={capturarGPS}
+            disabled={cargandoGps}
+          >
+            {cargandoGps ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.botonGpsTexto}>📍 Capturar mi ubicación ahora</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Datos de la cuenta */}
+      <Text style={styles.seccionTitulo}>🔐 Tu cuenta</Text>
+
+      <View style={styles.grupo}>
+        <Text style={styles.label}>Teléfono (será tu usuario)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej: 22224444"
+          placeholderTextColor="#B0A098"
+          value={telefono}
+          onChangeText={setTelefono}
+          keyboardType="phone-pad"
+          maxLength={8}
+        />
+      </View>
+
+      <View style={styles.grupo}>
+        <Text style={styles.label}>Contraseña</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Mínimo 6 caracteres"
+          placeholderTextColor="#B0A098"
+          value={contrasena}
+          onChangeText={setContrasena}
+          secureTextEntry
+        />
+      </View>
+
+      {/* Botón registrar */}
+      <TouchableOpacity
+        style={[styles.botonRegistrar, cargandoGuardar && styles.botonDeshabilitado]}
+        onPress={registrar}
+        disabled={cargandoGuardar}
+      >
+        {cargandoGuardar ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.botonRegistrarTexto}>Registrar mi pupusería →</Text>
+        )}
+      </TouchableOpacity>
+
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFF8F2' },
+  content: { padding: 24, paddingBottom: 48 },
+
+  botonRegresar: { marginBottom: 24 },
+  botonRegresarTexto: { fontSize: 15, color: '#E8210A', fontWeight: '600' },
+
+  titulo: {
+    fontSize: 32, fontWeight: '800', color: '#1A0F08',
+    letterSpacing: -0.5, marginBottom: 10, lineHeight: 38,
+  },
+  subtitulo: { fontSize: 14, color: '#6B5E57', marginBottom: 32, lineHeight: 20 },
+
+  seccionTitulo: {
+    fontSize: 16, fontWeight: '800', color: '#1A0F08',
+    marginBottom: 16, marginTop: 8,
+  },
+
+  grupo: { marginBottom: 20 },
+  label: {
+    fontSize: 13, fontWeight: '600', color: '#1A0F08',
+    marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8D5C4',
+    borderRadius: 12, padding: 14, fontSize: 15, color: '#1A0F08',
+  },
+
+  gpsBox: {
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8D5C4',
+    borderRadius: 16, padding: 20, marginBottom: 28, marginTop: 8,
+  },
+  gpsLabel: { fontSize: 15, fontWeight: '700', color: '#1A0F08', marginBottom: 8 },
+  gpsDescripcion: { fontSize: 13, color: '#6B5E57', lineHeight: 19, marginBottom: 16 },
+  botonGps: { backgroundColor: '#1A0F08', borderRadius: 12, padding: 14, alignItems: 'center' },
+  botonGpsTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+
+  gpsConfirmado: { alignItems: 'center', gap: 6 },
+  gpsCheck: { fontSize: 15, fontWeight: '700', color: '#16A34A' },
+  gpsCoordenadas: { fontSize: 12, color: '#6B5E57', fontFamily: 'monospace' },
+  gpsRecapturar: { fontSize: 13, color: '#E8210A', fontWeight: '600', marginTop: 4 },
+
+  botonRegistrar: {
+    backgroundColor: '#E8210A', borderRadius: 14,
+    padding: 18, alignItems: 'center', marginTop: 8,
+  },
+  botonDeshabilitado: { opacity: 0.6 },
+  botonRegistrarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+});

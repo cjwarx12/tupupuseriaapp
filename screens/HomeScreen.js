@@ -17,10 +17,17 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.emoji}>🫓</Text>
             <Text style={styles.titulo}>TuPupuseriaApp</Text>
             <Text style={styles.subtitulo}>¿Qué pupuserías hay cerca de ti?</Text>
+
             <TouchableOpacity style={styles.botonPrincipal}
                 onPress={() => navigation.navigate('Mapa')}>
                 <Text style={styles.botonPrincipalTexto}>🗺️ Ver pupuserías cercanas</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.botonNegocio}
+                onPress={() => navigation.navigate('RegistroPupuseria')}>
+                <Text style={styles.botonNegocioTexto}>🫓 ¿Tienes una pupusería? Regístrala</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.botonSecundario} onPress={cerrarSesion}>
                 <Text style={styles.botonSecundarioTexto}>Cerrar sesión</Text>
             </TouchableOpacity>
@@ -37,6 +44,10 @@ const styles = StyleSheet.create({
     botonPrincipal: { backgroundColor:'#E8210A', borderRadius:12, padding:16,
         paddingHorizontal:32, marginBottom:12, width:'100%', alignItems:'center' },
     botonPrincipalTexto: { color:'#FFFFFF', fontSize:16, fontWeight:'bold' },
+    botonNegocio: { backgroundColor:'#FFFFFF', borderWidth:1.5, borderColor:'#E8D5C4',
+        borderRadius:12, padding:16, paddingHorizontal:32, marginBottom:12,
+        width:'100%', alignItems:'center' },
+    botonNegocioTexto: { color:'#1A0F08', fontSize:15, fontWeight:'600' },
     botonSecundario: { borderWidth:1.5, borderColor:'#E8210A', borderRadius:12,
         padding:14, paddingHorizontal:32, width:'100%', alignItems:'center' },
     botonSecundarioTexto: { color:'#E8210A', fontSize:15, fontWeight:'bold' },

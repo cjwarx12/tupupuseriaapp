@@ -11,6 +11,8 @@ import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import PedidoScreen from './screens/PedidoScreen';
 import ConfirmacionScreen from './screens/ConfirmacionScreen';
+import RegistroPupuseriaScreen from './screens/RegistroPupuseriaScreen';
+import PanelPupuseriaScreen from './screens/PanelPupuseriaScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -49,12 +51,14 @@ export default function AppNavigator() {
                         <Stack.Screen name='Mapa' component={MapScreen} />
                         <Stack.Screen name='Pedido' component={PedidoScreen} />
                         <Stack.Screen name='Confirmacion' component={ConfirmacionScreen} />
+                        <Stack.Screen name='PanelPupuseria' component={PanelPupuseriaScreen} />
                     </>
                 ) : (
                     <>
                         <Stack.Screen name='Login' component={LoginScreen} />
                         <Stack.Screen name='Splash' component={SplashScreen} />
                         <Stack.Screen name='Registro' component={RegistroScreen} />
+                        <Stack.Screen name='RegistroPupuseria' component={RegistroPupuseriaScreen} />
                     </>
                 )}
             </Stack.Navigator>
