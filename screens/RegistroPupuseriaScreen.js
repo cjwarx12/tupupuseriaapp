@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert, ActivityIndicator
+  StyleSheet, ScrollView, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform
 } from 'react-native';
 import * as Location from 'expo-location';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -14,28 +15,37 @@ export default function RegistroPupuseriaScreen({ navigation }) {
   const [telefono, setTelefono] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [ubicacion, setUbicacion] = useState(null);
-  const [cargandoGps, setCargandoGps] = useState(false);
+  const [cargandoGps, setCargandoGps] = useState(true);
   const [cargandoGuardar, setCargandoGuardar] = useState(false);
+
+  useEffect(() => {
+    capturarGPS();
+  }, []);
 
   const capturarGPS = async () => {
     setCargandoGps(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos acceso a tu ubicación para registrar tu pupusería.');
+        Alert.alert(
+          'Permiso de ubicación necesario',
+          'Para registrar tu pupusería necesitamos saber dónde está. Por favor activa el permiso de ubicación.',
+          [{ text: 'Entendido' }]
+        );
         setCargandoGps(false);
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      });
       setUbicacion(loc.coords);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo obtener la ubicación. Intenta de nuevo.');
+      Alert.alert('Error', 'No se pudo obtener tu ubicación. Intenta de nuevo.');
     }
     setCargandoGps(false);
   };
 
   const registrar = async () => {
-    // Validaciones
     if (!nombre.trim()) {
       Alert.alert('Error', 'Ingresa el nombre de tu pupusería.');
       return;
@@ -53,18 +63,20 @@ export default function RegistroPupuseriaScreen({ navigation }) {
       return;
     }
     if (!ubicacion) {
-      Alert.alert('Error', 'Primero captura tu ubicación GPS estando en tu pupusería.');
+      Alert.alert(
+        'Ubicación no capturada',
+        'Necesitamos tu ubicación. Asegúrate de tener el GPS activado.',
+        [{ text: 'Reintentar', onPress: capturarGPS }]
+      );
       return;
     }
 
     setCargandoGuardar(true);
     try {
-      // Paso 1 — crear cuenta del dueño en Firebase Auth
       const correo = telefonoACorreo(telefono);
       const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
       const uid = credencial.user.uid;
 
-      // Paso 2 — guardar la pupusería en Firestore con el UID del dueño
       await addDoc(collection(db, 'pupuserias'), {
         nombre: nombre.trim(),
         direccion: direccion.trim(),
@@ -76,7 +88,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
         fecha_registro: serverTimestamp(),
       });
 
-      // Paso 3 — ir al panel (AppNavigator detecta sesión y muestra bloque autenticado)
       navigation.replace('PanelPupuseria', { nombre: nombre.trim() });
 
     } catch (error) {
@@ -90,116 +101,111 @@ export default function RegistroPupuseriaScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
-      <TouchableOpacity style={styles.botonRegresar} onPress={() => navigation.goBack()}>
-        <Text style={styles.botonRegresarTexto}>← Regresar</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.botonRegresar} onPress={() => navigation.goBack()}>
+          <Text style={styles.botonRegresarTexto}>← Regresar</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.titulo}>Registra tu{'\n'}Pupusería 🫓</Text>
-      <Text style={styles.subtitulo}>
-        Completa los datos estando físicamente en tu negocio para capturar la ubicación correcta.
-      </Text>
-
-      {/* Datos del negocio */}
-      <Text style={styles.seccionTitulo}>📍 Tu negocio</Text>
-
-      <View style={styles.grupo}>
-        <Text style={styles.label}>Nombre de la pupusería</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: Pupusería La Bendición"
-          placeholderTextColor="#B0A098"
-          value={nombre}
-          onChangeText={setNombre}
-        />
-      </View>
-
-      <View style={styles.grupo}>
-        <Text style={styles.label}>Dirección</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: Col. El Paraíso, San Salvador"
-          placeholderTextColor="#B0A098"
-          value={direccion}
-          onChangeText={setDireccion}
-        />
-      </View>
-
-      {/* GPS */}
-      <View style={styles.gpsBox}>
-        <Text style={styles.gpsLabel}>📍 Ubicación GPS</Text>
-        <Text style={styles.gpsDescripcion}>
-          Presiona el botón estando dentro o frente a tu pupusería.
-          Esta ubicación es la que verán los clientes en el mapa.
+        <Text style={styles.titulo}>Registra tu{'\n'}Pupusería 🫓</Text>
+        <Text style={styles.subtitulo}>
+          Completa los datos estando físicamente en tu negocio.
         </Text>
-        {ubicacion ? (
-          <View style={styles.gpsConfirmado}>
-            <Text style={styles.gpsCheck}>✅ Ubicación capturada</Text>
-            <Text style={styles.gpsCoordenadas}>
-              {ubicacion.latitude.toFixed(5)}, {ubicacion.longitude.toFixed(5)}
-            </Text>
-            <TouchableOpacity onPress={capturarGPS}>
-              <Text style={styles.gpsRecapturar}>Volver a capturar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.botonGps}
-            onPress={capturarGPS}
-            disabled={cargandoGps}
-          >
-            {cargandoGps ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.botonGpsTexto}>📍 Capturar mi ubicación ahora</Text>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
 
-      {/* Datos de la cuenta */}
-      <Text style={styles.seccionTitulo}>🔐 Tu cuenta</Text>
+        {/* Indicador GPS automático */}
+        <View style={[styles.gpsIndicador, ubicacion ? styles.gpsOk : styles.gpsCargando]}>
+          {cargandoGps ? (
+            <>
+              <ActivityIndicator size="small" color="#6B5E57" />
+              <Text style={styles.gpsIndicadorTexto}>Detectando tu ubicación...</Text>
+            </>
+          ) : ubicacion ? (
+            <>
+              <Text style={styles.gpsIndicadorEmoji}>✅</Text>
+              <Text style={styles.gpsIndicadorTextoOk}>Ubicación capturada correctamente</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.gpsIndicadorEmoji}>⚠️</Text>
+              <Text style={styles.gpsIndicadorTextoError}>No se pudo obtener la ubicación</Text>
+              <TouchableOpacity onPress={capturarGPS}>
+                <Text style={styles.gpsReintentar}>Reintentar</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
 
-      <View style={styles.grupo}>
-        <Text style={styles.label}>Teléfono (será tu usuario)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ej: 22224444"
-          placeholderTextColor="#B0A098"
-          value={telefono}
-          onChangeText={setTelefono}
-          keyboardType="phone-pad"
-          maxLength={8}
-        />
-      </View>
+        {/* Datos del negocio */}
+        <Text style={styles.seccionTitulo}>📍 Tu negocio</Text>
 
-      <View style={styles.grupo}>
-        <Text style={styles.label}>Contraseña</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Mínimo 6 caracteres"
-          placeholderTextColor="#B0A098"
-          value={contrasena}
-          onChangeText={setContrasena}
-          secureTextEntry
-        />
-      </View>
+        <View style={styles.grupo}>
+          <Text style={styles.label}>Nombre de la pupusería</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Pupusería La Bendición"
+            placeholderTextColor="#B0A098"
+            value={nombre}
+            onChangeText={setNombre}
+          />
+        </View>
 
-      {/* Botón registrar */}
-      <TouchableOpacity
-        style={[styles.botonRegistrar, cargandoGuardar && styles.botonDeshabilitado]}
-        onPress={registrar}
-        disabled={cargandoGuardar}
-      >
-        {cargandoGuardar ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.botonRegistrarTexto}>Registrar mi pupusería →</Text>
-        )}
-      </TouchableOpacity>
+        <View style={styles.grupo}>
+          <Text style={styles.label}>Dirección</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Col. El Paraíso, San Salvador"
+            placeholderTextColor="#B0A098"
+            value={direccion}
+            onChangeText={setDireccion}
+          />
+        </View>
 
-    </ScrollView>
+        {/* Datos de la cuenta */}
+        <Text style={styles.seccionTitulo}>🔐 Tu cuenta</Text>
+
+        <View style={styles.grupo}>
+          <Text style={styles.label}>Teléfono (será tu usuario)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: 22224444"
+            placeholderTextColor="#B0A098"
+            value={telefono}
+            onChangeText={setTelefono}
+            keyboardType="phone-pad"
+            maxLength={8}
+          />
+        </View>
+
+        <View style={styles.grupo}>
+          <Text style={styles.label}>Contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor="#B0A098"
+            value={contrasena}
+            onChangeText={setContrasena}
+            secureTextEntry
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.botonRegistrar, (cargandoGuardar || cargandoGps) && styles.botonDeshabilitado]}
+          onPress={registrar}
+          disabled={cargandoGuardar || cargandoGps}
+        >
+          {cargandoGuardar ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.botonRegistrarTexto}>Registrar mi pupusería →</Text>
+          )}
+        </TouchableOpacity>
+
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -214,7 +220,19 @@ const styles = StyleSheet.create({
     fontSize: 32, fontWeight: '800', color: '#1A0F08',
     letterSpacing: -0.5, marginBottom: 10, lineHeight: 38,
   },
-  subtitulo: { fontSize: 14, color: '#6B5E57', marginBottom: 32, lineHeight: 20 },
+  subtitulo: { fontSize: 14, color: '#6B5E57', marginBottom: 24, lineHeight: 20 },
+
+  gpsIndicador: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 12, padding: 14, marginBottom: 28,
+  },
+  gpsCargando: { backgroundColor: '#F5F0EB', borderWidth: 1.5, borderColor: '#E8D5C4' },
+  gpsOk: { backgroundColor: '#F0FDF4', borderWidth: 1.5, borderColor: '#BBF7D0' },
+  gpsIndicadorEmoji: { fontSize: 16 },
+  gpsIndicadorTexto: { fontSize: 13, color: '#6B5E57', fontWeight: '500' },
+  gpsIndicadorTextoOk: { fontSize: 13, color: '#15803D', fontWeight: '600' },
+  gpsIndicadorTextoError: { fontSize: 13, color: '#E8210A', fontWeight: '600' },
+  gpsReintentar: { fontSize: 13, color: '#E8210A', fontWeight: '700', marginLeft: 8 },
 
   seccionTitulo: {
     fontSize: 16, fontWeight: '800', color: '#1A0F08',
@@ -231,24 +249,10 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 14, fontSize: 15, color: '#1A0F08',
   },
 
-  gpsBox: {
-    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8D5C4',
-    borderRadius: 16, padding: 20, marginBottom: 28, marginTop: 8,
-  },
-  gpsLabel: { fontSize: 15, fontWeight: '700', color: '#1A0F08', marginBottom: 8 },
-  gpsDescripcion: { fontSize: 13, color: '#6B5E57', lineHeight: 19, marginBottom: 16 },
-  botonGps: { backgroundColor: '#1A0F08', borderRadius: 12, padding: 14, alignItems: 'center' },
-  botonGpsTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-
-  gpsConfirmado: { alignItems: 'center', gap: 6 },
-  gpsCheck: { fontSize: 15, fontWeight: '700', color: '#16A34A' },
-  gpsCoordenadas: { fontSize: 12, color: '#6B5E57', fontFamily: 'monospace' },
-  gpsRecapturar: { fontSize: 13, color: '#E8210A', fontWeight: '600', marginTop: 4 },
-
   botonRegistrar: {
     backgroundColor: '#E8210A', borderRadius: 14,
     padding: 18, alignItems: 'center', marginTop: 8,
   },
-  botonDeshabilitado: { opacity: 0.6 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonRegistrarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 });
