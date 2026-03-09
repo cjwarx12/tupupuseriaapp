@@ -4,6 +4,7 @@ import {
   FlatList, ActivityIndicator, Alert
 } from 'react-native';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
 export default function PanelPupuseriaScreen({ route, navigation }) {
@@ -12,7 +13,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // Primero buscamos la pupusería que pertenece al dueño que está logueado
     const qPupuseria = query(
       collection(db, 'pupuserias'),
       where('dueno_uid', '==', auth.currentUser.uid)
@@ -30,7 +30,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
   }, []);
 
   const escucharPedidos = (id) => {
-    // onSnapshot = oreja pegada a Firestore, actualiza en tiempo real
     const qPedidos = query(
       collection(db, 'pedidos'),
       where('pupuseria_id', '==', id),
@@ -43,7 +42,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         ...doc.data()
       }));
 
-      // Pendientes primero, listos abajo
       lista.sort((a, b) => {
         if (a.estado === 'pendiente' && b.estado !== 'pendiente') return -1;
         if (a.estado !== 'pendiente' && b.estado === 'pendiente') return 1;
@@ -52,6 +50,27 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
       setPedidos(lista);
     });
+  };
+
+  const cerrarSesion = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Seguro que quieres cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar sesión.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const marcarListo = async (pedidoId) => {
@@ -154,10 +173,15 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           <Text style={styles.headerSub}>Panel de pedidos</Text>
           <Text style={styles.headerNombre}>{nombre}</Text>
         </View>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeTexto}>
-            {pedidos.filter(p => p.estado === 'pendiente').length} nuevos
-          </Text>
+        <View style={styles.headerDerecha}>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeTexto}>
+              {pedidos.filter(p => p.estado === 'pendiente').length} nuevos
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.botonCerrarSesion} onPress={cerrarSesion}>
+            <Text style={styles.botonCerrarSesionTexto}>Salir</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -201,8 +225,11 @@ const styles = StyleSheet.create({
   },
   headerSub: { fontSize: 12, color: '#9A8A80', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
   headerNombre: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
+  headerDerecha: { alignItems: 'flex-end', gap: 8 },
   headerBadge: { backgroundColor: '#E8210A', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   headerBadgeTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  botonCerrarSesion: { borderWidth: 1, borderColor: '#9A8A80', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  botonCerrarSesionTexto: { color: '#9A8A80', fontSize: 12, fontWeight: '600' },
 
   enVivoBar: {
     flexDirection: 'row',
