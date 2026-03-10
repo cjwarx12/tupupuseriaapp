@@ -73,13 +73,13 @@ export default function RegistroPupuseriaScreen({ navigation }) {
 
     setCargandoGuardar(true);
     try {
-      // Paso 1 — crear cuenta del dueño
+      // Paso 1 — crear cuenta del dueño en Firebase Auth
       const correo = telefonoACorreo(telefono);
       const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
       const uid = credencial.user.uid;
 
       // Paso 2 — guardar la pupusería en Firestore
-      await addDoc(collection(db, 'pupuserias'), {
+      const docRef = await addDoc(collection(db, 'pupuserias'), {
         nombre: nombre.trim(),
         direccion: direccion.trim(),
         telefono: telefono.trim(),
@@ -90,8 +90,22 @@ export default function RegistroPupuseriaScreen({ navigation }) {
         fecha_registro: serverTimestamp(),
       });
 
+      // Paso 3 — crear suscripcion con 1 mes gratis automaticamente
+      const ahora = new Date();
+      const vencimiento = new Date();
+      vencimiento.setDate(ahora.getDate() + 30);
+
+      await addDoc(collection(db, 'suscripciones'), {
+        pupuseria_id: docRef.id,
+        dueno_uid: uid,
+        estado: 'trial',
+        fecha_inicio: ahora,
+        fecha_vencimiento: vencimiento,
+        es_trial: true,
+        meses_acumulados: 1,
+      });
+
       // AppNavigator detecta la sesion automaticamente y redirige al panel
-      // No necesitamos navegar manualmente
 
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {

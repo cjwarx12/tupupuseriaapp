@@ -12,40 +12,63 @@ export default function PanelPupuseriaScreen({ route }) {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  // Guardamos referencia a los listeners para cancelarlos al salir
   const unsubPupuseriaRef = useRef(null);
   const unsubPedidosRef = useRef(null);
 
   useEffect(() => {
-    const qPupuseria = query(
-      collection(db, 'pupuserias'),
-      where('dueno_uid', '==', auth.currentUser.uid)
-    );
+    let activo = true;
 
-    unsubPupuseriaRef.current = onSnapshot(qPupuseria, (snapshot) => {
-      if (!snapshot.empty) {
-        const id = snapshot.docs[0].id;
-        escucharPedidos(id);
+    const iniciarListeners = async () => {
+      try {
+        // Forzar que el token esté listo antes de iniciar listeners
+        await auth.currentUser.getIdToken(true);
+
+        if (!activo) return;
+
+        const qPupuseria = query(
+          collection(db, 'pupuserias'),
+          where('dueno_uid', '==', auth.currentUser.uid)
+        );
+
+        unsubPupuseriaRef.current = onSnapshot(qPupuseria, (snapshot) => {
+          if (!activo) return;
+          if (!snapshot.empty) {
+            const id = snapshot.docs[0].id;
+            escucharPedidos(id, activo);
+          }
+          setCargando(false);
+        }, (error) => {
+          console.log('Error listener pupuseria:', error.code);
+          setCargando(false);
+        });
+
+      } catch (error) {
+        console.log('Error iniciando listeners:', error);
+        setCargando(false);
       }
-      setCargando(false);
-    });
+    };
 
-    // Al salir de la pantalla cancelamos TODOS los listeners
+    iniciarListeners();
+
     return () => {
+      activo = false;
       if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
       if (unsubPedidosRef.current) unsubPedidosRef.current();
     };
   }, []);
 
-  const escucharPedidos = (id) => {
+  const escucharPedidos = (id, activo) => {
+    // Cancelar listener anterior si existe
+    if (unsubPedidosRef.current) unsubPedidosRef.current();
+
     const qPedidos = query(
       collection(db, 'pedidos'),
       where('pupuseria_id', '==', id),
       where('estado', 'in', ['pendiente', 'listo'])
     );
 
-    // Guardamos el unsubscribe del listener de pedidos
     unsubPedidosRef.current = onSnapshot(qPedidos, (snapshot) => {
+      if (!activo) return;
       const lista = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -58,6 +81,8 @@ export default function PanelPupuseriaScreen({ route }) {
       });
 
       setPedidos(lista);
+    }, (error) => {
+      console.log('Error listener pedidos:', error.code);
     });
   };
 
@@ -71,7 +96,6 @@ export default function PanelPupuseriaScreen({ route }) {
           text: 'Cerrar sesión',
           style: 'destructive',
           onPress: async () => {
-            // Cancelamos listeners antes de cerrar sesión
             if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
             if (unsubPedidosRef.current) unsubPedidosRef.current();
             try {
@@ -87,9 +111,7 @@ export default function PanelPupuseriaScreen({ route }) {
 
   const marcarListo = async (pedidoId) => {
     try {
-      await updateDoc(doc(db, 'pedidos', pedidoId), {
-        estado: 'listo'
-      });
+      await updateDoc(doc(db, 'pedidos', pedidoId), { estado: 'listo' });
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar el pedido.');
     }
@@ -105,9 +127,7 @@ export default function PanelPupuseriaScreen({ route }) {
           text: 'Sí, entregado',
           onPress: async () => {
             try {
-              await updateDoc(doc(db, 'pedidos', pedidoId), {
-                estado: 'entregado'
-              });
+              await updateDoc(doc(db, 'pedidos', pedidoId), { estado: 'entregado' });
             } catch (error) {
               Alert.alert('Error', 'No se pudo actualizar el pedido.');
             }
@@ -119,10 +139,8 @@ export default function PanelPupuseriaScreen({ route }) {
 
   const renderPedido = ({ item }) => {
     const esListo = item.estado === 'listo';
-
     return (
       <View style={[styles.tarjeta, esListo && styles.tarjetaLista]}>
-
         <View style={styles.tarjetaHeader}>
           <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
             <Text style={styles.badgeTexto}>
@@ -134,9 +152,7 @@ export default function PanelPupuseriaScreen({ route }) {
 
         <View style={styles.detalleBox}>
           {item.detalle && item.detalle.map((d, i) => (
-            <Text key={i} style={styles.detalleLinea}>
-              • {d.cantidad}x {d.tipo}
-            </Text>
+            <Text key={i} style={styles.detalleLinea}>• {d.cantidad}x {d.tipo}</Text>
           ))}
         </View>
 
@@ -149,21 +165,14 @@ export default function PanelPupuseriaScreen({ route }) {
         )}
 
         {!esListo ? (
-          <TouchableOpacity
-            style={styles.botonListo}
-            onPress={() => marcarListo(item.id)}
-          >
+          <TouchableOpacity style={styles.botonListo} onPress={() => marcarListo(item.id)}>
             <Text style={styles.botonListoTexto}>✅ Marcar como listo</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity
-            style={styles.botonEntregado}
-            onPress={() => marcarEntregado(item.id)}
-          >
+          <TouchableOpacity style={styles.botonEntregado} onPress={() => marcarEntregado(item.id)}>
             <Text style={styles.botonEntregadoTexto}>📦 Marcar como entregado</Text>
           </TouchableOpacity>
         )}
-
       </View>
     );
   };
@@ -179,7 +188,6 @@ export default function PanelPupuseriaScreen({ route }) {
 
   return (
     <View style={styles.container}>
-
       <View style={styles.header}>
         <View>
           <Text style={styles.headerSub}>Panel de pedidos</Text>
@@ -217,7 +225,6 @@ export default function PanelPupuseriaScreen({ route }) {
           </View>
         }
       />
-
     </View>
   );
 }
@@ -244,14 +251,9 @@ const styles = StyleSheet.create({
   botonCerrarSesionTexto: { color: '#9A8A80', fontSize: 12, fontWeight: '600' },
 
   enVivoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    padding: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#BBF7D0',
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F0FDF4', padding: 10, paddingHorizontal: 16,
+    borderBottomWidth: 1, borderBottomColor: '#BBF7D0', gap: 8,
   },
   enVivoPunto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' },
   enVivoTexto: { fontSize: 12, color: '#15803D', fontWeight: '600' },
@@ -259,11 +261,8 @@ const styles = StyleSheet.create({
   lista: { padding: 16, gap: 14 },
 
   tarjeta: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1.5,
-    borderColor: '#E8D5C4',
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    padding: 18, borderWidth: 1.5, borderColor: '#E8D5C4',
   },
   tarjetaLista: { borderColor: '#BBF7D0', backgroundColor: '#F0FDF4' },
   tarjetaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
