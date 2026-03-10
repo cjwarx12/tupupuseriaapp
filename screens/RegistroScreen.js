@@ -1,7 +1,8 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, telefonoACorreo } from '../firebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, telefonoACorreo } from '../firebaseConfig';
 
 export default function RegistroScreen({ navigation }) {
     const [nombre, setNombre] = useState('');
@@ -9,35 +10,51 @@ export default function RegistroScreen({ navigation }) {
     const [contrasena, setContrasena] = useState('');
     const [cargando, setCargando] = useState(false);
 
-const registrar = async () => {
+    const registrar = async () => {
         if (!nombre || !telefono || !contrasena) {
-        Alert.alert('Error', 'Por favor completa todos los campos');
-        return;
+            Alert.alert('Error', 'Por favor completa todos los campos');
+            return;
         }
         if (telefono.length !== 8) {
-        Alert.alert('Error', 'El número debe tener 8 dígitos');
-        return;
+            Alert.alert('Error', 'El número debe tener 8 dígitos');
+            return;
         }
         if (contrasena.length < 6) {
-        Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-        return;
+            Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+            return;
         }
+
         setCargando(true);
         try {
-        const correo = telefonoACorreo(telefono);
-        await createUserWithEmailAndPassword(auth, correo, contrasena);
-        Alert.alert('¡Listo!', 'Cuenta creada exitosamente');
-        } catch (error) {
-        if (error.code === 'auth/email-already-in-use') {
-            Alert.alert('Error', 'Este número ya tiene una cuenta');
-        } else {
-            Alert.alert('Error', 'No se pudo crear la cuenta');
-        }
-        }
-    setCargando(false);
-};
+            // Paso 1 — crear cuenta en Firebase Auth
+            const correo = telefonoACorreo(telefono);
+            const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
+            const uid = credencial.user.uid;
 
-return (
+            // Paso 2 — guardar datos del cliente en Firestore
+            // tokenNotificacion se agregará en Fase 4 con EAS Build
+            await setDoc(doc(db, 'usuarios', uid), {
+                nombre: nombre.trim(),
+                telefono: telefono.trim(),
+                uid,
+                rol: 'cliente',
+                tokenNotificacion: null,
+                fecha_registro: new Date(),
+            });
+
+            Alert.alert('¡Listo!', 'Cuenta creada exitosamente');
+
+        } catch (error) {
+            if (error.code === 'auth/email-already-in-use') {
+                Alert.alert('Error', 'Este número ya tiene una cuenta');
+            } else {
+                Alert.alert('Error', 'No se pudo crear la cuenta');
+            }
+        }
+        setCargando(false);
+    };
+
+    return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.emoji}>🫓</Text>
@@ -46,17 +63,17 @@ return (
             </View>
             <View style={styles.formulario}>
                 <TextInput style={styles.input} placeholder='Tu nombre completo'
-                placeholderTextColor='#9A8A80' value={nombre} onChangeText={setNombre} />
+                    placeholderTextColor='#9A8A80' value={nombre} onChangeText={setNombre} />
                 <TextInput style={styles.input} placeholder='Número de teléfono'
-                placeholderTextColor='#9A8A80' keyboardType='phone-pad' maxLength={8}
-                value={telefono} onChangeText={setTelefono} />
+                    placeholderTextColor='#9A8A80' keyboardType='phone-pad' maxLength={8}
+                    value={telefono} onChangeText={setTelefono} />
                 <TextInput style={styles.input} placeholder='Contraseña'
-                placeholderTextColor='#9A8A80' secureTextEntry
-                value={contrasena} onChangeText={setContrasena} />
+                    placeholderTextColor='#9A8A80' secureTextEntry
+                    value={contrasena} onChangeText={setContrasena} />
             </View>
             <TouchableOpacity style={styles.botonPrincipal} onPress={registrar} disabled={cargando}>
                 <Text style={styles.botonPrincipalTexto}>
-                {cargando ? 'Creando cuenta...' : 'Crear mi cuenta'}
+                    {cargando ? 'Creando cuenta...' : 'Crear mi cuenta'}
                 </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>

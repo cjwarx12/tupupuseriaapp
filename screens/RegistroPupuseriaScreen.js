@@ -73,10 +73,12 @@ export default function RegistroPupuseriaScreen({ navigation }) {
 
     setCargandoGuardar(true);
     try {
+      // Paso 1 — crear cuenta del dueño
       const correo = telefonoACorreo(telefono);
       const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
       const uid = credencial.user.uid;
 
+      // Paso 2 — guardar la pupusería en Firestore
       await addDoc(collection(db, 'pupuserias'), {
         nombre: nombre.trim(),
         direccion: direccion.trim(),
@@ -88,7 +90,8 @@ export default function RegistroPupuseriaScreen({ navigation }) {
         fecha_registro: serverTimestamp(),
       });
 
-      navigation.replace('PanelPupuseria', { nombre: nombre.trim() });
+      // AppNavigator detecta la sesion automaticamente y redirige al panel
+      // No necesitamos navegar manualmente
 
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
