@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert
@@ -7,10 +7,14 @@ import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/f
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
-export default function PanelPupuseriaScreen({ route, navigation }) {
+export default function PanelPupuseriaScreen({ route }) {
   const { nombre } = route.params;
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
+
+  // Guardamos referencia a los listeners para cancelarlos al salir
+  const unsubPupuseriaRef = useRef(null);
+  const unsubPedidosRef = useRef(null);
 
   useEffect(() => {
     const qPupuseria = query(
@@ -18,7 +22,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       where('dueno_uid', '==', auth.currentUser.uid)
     );
 
-    const unsubPupuseria = onSnapshot(qPupuseria, (snapshot) => {
+    unsubPupuseriaRef.current = onSnapshot(qPupuseria, (snapshot) => {
       if (!snapshot.empty) {
         const id = snapshot.docs[0].id;
         escucharPedidos(id);
@@ -26,7 +30,11 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       setCargando(false);
     });
 
-    return () => unsubPupuseria();
+    // Al salir de la pantalla cancelamos TODOS los listeners
+    return () => {
+      if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
+      if (unsubPedidosRef.current) unsubPedidosRef.current();
+    };
   }, []);
 
   const escucharPedidos = (id) => {
@@ -36,7 +44,8 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       where('estado', 'in', ['pendiente', 'listo'])
     );
 
-    onSnapshot(qPedidos, (snapshot) => {
+    // Guardamos el unsubscribe del listener de pedidos
+    unsubPedidosRef.current = onSnapshot(qPedidos, (snapshot) => {
       const lista = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -62,6 +71,9 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           text: 'Cerrar sesión',
           style: 'destructive',
           onPress: async () => {
+            // Cancelamos listeners antes de cerrar sesión
+            if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
+            if (unsubPedidosRef.current) unsubPedidosRef.current();
             try {
               await signOut(auth);
             } catch (error) {
