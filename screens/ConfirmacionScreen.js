@@ -5,7 +5,7 @@ export default function ConfirmacionScreen({ route, navigation }) {
     const { pupuseria, total, totalPrecio, numeroPedido } = route.params;
     const scaleAnim = useRef(new Animated.Value(0)).current;
 
-    const numeroPedidoFormateado = '#' + numeroPedido.toString().padStart(2, '0');
+    const numeroPedidoFormateado = '#' + (numeroPedido ?? '??').toString().padStart(2, '0');
 
     useEffect(() => {
         Animated.spring(scaleAnim, {

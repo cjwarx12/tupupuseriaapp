@@ -49,12 +49,13 @@ export default function PedidoScreen({ route, navigation }) {
         }
         setCargando(true);
         try {
-            // Contar pedidos previos de esta pupusería para número correlativo
-            const qConteo = query(
+            // Contar solo pedidos ACTIVOS (pendiente + listo) para número correlativo
+            const qActivos = query(
                 collection(db, 'pedidos'),
-                where('pupuseria_id', '==', pupuseria.id)
+                where('pupuseria_id', '==', pupuseria.id),
+                where('estado', 'in', ['pendiente', 'listo'])
             );
-            const conteoSnap = await getCountFromServer(qConteo);
+            const conteoSnap = await getCountFromServer(qActivos);
             const numeroPedido = conteoSnap.data().count + 1;
 
             const detalle = menu
