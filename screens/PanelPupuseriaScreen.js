@@ -166,7 +166,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
   const numeroPedido = (index) => {
     const num = (index + 1).toString().padStart(2, '0');
-    return `#${num}`;
+    return `Pedido #${num}`;
   };
 
   const tiempoRelativo = (fecha) => {
@@ -267,48 +267,31 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         </View>
       </View>
 
+      {/* Stats compactas en una sola línea horizontal */}
       <View style={styles.statsBar}>
         <View style={styles.statItem}>
           <Text style={styles.statNumero}>{totalHoy}</Text>
-          <Text style={styles.statLabel}>Pedidos hoy</Text>
+          <Text style={styles.statLabel}>Hoy</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumero}>{pedidos.length}</Text>
-          <Text style={styles.statLabel}>Activos ahora</Text>
+          <Text style={styles.statLabel}>Activos</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumero}>{pendientes}</Text>
           <Text style={styles.statLabel}>Pendientes</Text>
         </View>
-      </View>
-
-      <View style={styles.accionesRapidas}>
-        <TouchableOpacity
-          style={styles.accionBtn}
-          onPress={() => navigation.navigate('MiSaldo')}
-        >
-          <Text style={styles.accionEmoji}>💳</Text>
-          <View>
-            <Text style={styles.accionTitulo}>Mi saldo</Text>
-            <Text style={styles.accionSub}>Ver suscripción</Text>
-          </View>
-          <Text style={styles.accionFlecha}>→</Text>
+        <View style={styles.statDivider} />
+        <TouchableOpacity style={styles.statAccion} onPress={() => navigation.navigate('MiSaldo')}>
+          <Text style={styles.statAccionTexto}>💳</Text>
+          <Text style={styles.statLabel}>Saldo</Text>
         </TouchableOpacity>
-
-        <View style={styles.accionesSeparador} />
-
-        <TouchableOpacity
-          style={styles.accionBtn}
-          onPress={() => navigation.navigate('GestionarMenu')}
-        >
-          <Text style={styles.accionEmoji}>🍽️</Text>
-          <View>
-            <Text style={styles.accionTitulo}>Mi menú</Text>
-            <Text style={styles.accionSub}>Agregar o editar productos</Text>
-          </View>
-          <Text style={styles.accionFlecha}>→</Text>
+        <View style={styles.statDivider} />
+        <TouchableOpacity style={styles.statAccion} onPress={() => navigation.navigate('GestionarMenu')}>
+          <Text style={styles.statAccionTexto}>🍽️</Text>
+          <Text style={styles.statLabel}>Menú</Text>
         </TouchableOpacity>
       </View>
 
@@ -362,39 +345,26 @@ const styles = StyleSheet.create({
   statsBar: {
     flexDirection: 'row',
     backgroundColor: '#1A1008',
-    paddingVertical: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#2A1F18',
+    alignItems: 'center',
   },
   statItem: { flex: 1, alignItems: 'center' },
-  statNumero: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
-  statLabel: { fontSize: 11, color: '#6B5E57', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  statDivider: { width: 1, backgroundColor: '#2A1F18' },
-
-  accionesRapidas: {
-    backgroundColor: '#1A1008',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#2A1F18',
-    overflow: 'hidden',
-  },
-  accionBtn: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  accionesSeparador: { height: 1, backgroundColor: '#2A1F18', marginHorizontal: 16 },
-  accionEmoji: { fontSize: 24 },
-  accionTitulo: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
-  accionSub: { fontSize: 12, color: '#6B5E57', marginTop: 2 },
-  accionFlecha: { marginLeft: 'auto', fontSize: 16, color: '#E8210A', fontWeight: '800' },
+  statAccion: { flex: 1, alignItems: 'center' },
+  statAccionTexto: { fontSize: 16 },
+  statNumero: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
+  statLabel: { fontSize: 9, color: '#6B5E57', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 28, backgroundColor: '#2A1F18' },
 
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0A1A0F', padding: 10, paddingHorizontal: 16,
+    backgroundColor: '#0A1A0F', padding: 8, paddingHorizontal: 16,
     borderBottomWidth: 1, borderBottomColor: '#0F2A18',
-    gap: 8, marginTop: 12,
+    gap: 8,
   },
-  enVivoPunto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' },
-  enVivoTexto: { fontSize: 12, color: '#16A34A', fontWeight: '600' },
+  enVivoPunto: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
+  enVivoTexto: { fontSize: 11, color: '#16A34A', fontWeight: '600' },
 
   lista: { padding: 16, gap: 12 },
 
@@ -417,7 +387,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  numeroPedido: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  numeroPedido: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   badgePendiente: { backgroundColor: '#2A1F00' },
   badgeListo: { backgroundColor: '#0A2A14' },

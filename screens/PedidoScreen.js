@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, getCountFromServer, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 
 export default function PedidoScreen({ route, navigation }) {
@@ -49,6 +49,14 @@ export default function PedidoScreen({ route, navigation }) {
         }
         setCargando(true);
         try {
+            // Contar pedidos previos de esta pupusería para número correlativo
+            const qConteo = query(
+                collection(db, 'pedidos'),
+                where('pupuseria_id', '==', pupuseria.id)
+            );
+            const conteoSnap = await getCountFromServer(qConteo);
+            const numeroPedido = conteoSnap.data().count + 1;
+
             const detalle = menu
                 .filter(item => cantidades[item.id] > 0)
                 .map(item => ({
@@ -64,10 +72,17 @@ export default function PedidoScreen({ route, navigation }) {
                 detalle,
                 total: totalItems,
                 total_precio: parseFloat(totalPrecio.toFixed(2)),
+                numero_pedido: numeroPedido,
                 estado: 'pendiente',
                 fecha: serverTimestamp(),
             });
-            navigation.replace('Confirmacion', { pupuseria, total: totalItems, totalPrecio: parseFloat(totalPrecio.toFixed(2)) });
+
+            navigation.replace('Confirmacion', {
+                pupuseria,
+                total: totalItems,
+                totalPrecio: parseFloat(totalPrecio.toFixed(2)),
+                numeroPedido,
+            });
         } catch (error) {
             Alert.alert('Error', 'No se pudo enviar el pedido');
         }
@@ -101,7 +116,6 @@ export default function PedidoScreen({ route, navigation }) {
                 </View>
             ) : (
                 <>
-                    {/* Pupusas */}
                     {menu.filter(i => i.categoria === 'pupusa').length > 0 && (
                         <>
                             <Text style={styles.seccion}>🫓 Pupusas</Text>
@@ -128,7 +142,6 @@ export default function PedidoScreen({ route, navigation }) {
                         </>
                     )}
 
-                    {/* Refrescos */}
                     {menu.filter(i => i.categoria === 'refresco').length > 0 && (
                         <>
                             <Text style={styles.seccion}>🥤 Refrescos</Text>
@@ -155,7 +168,6 @@ export default function PedidoScreen({ route, navigation }) {
                         </>
                     )}
 
-                    {/* Otros */}
                     {menu.filter(i => i.categoria === 'otro').length > 0 && (
                         <>
                             <Text style={styles.seccion}>🍽️ Otros</Text>
@@ -220,9 +232,8 @@ const styles = StyleSheet.create({
     },
     fila: {
         flexDirection: 'row', alignItems: 'center', padding: 16, paddingHorizontal: 20,
-        borderBottomWidth: 1, borderBottomColor: '#F0E0D0', backgroundColor: '#FFFFFF',
-        marginHorizontal: 16, marginTop: 8, borderRadius: 12,
-        borderWidth: 1, borderColor: '#E8D5C4',
+        backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 8,
+        borderRadius: 12, borderWidth: 1, borderColor: '#E8D5C4',
     },
     tipoEmoji: { fontSize: 28, marginRight: 12 },
     tipoInfo: { flex: 1 },
