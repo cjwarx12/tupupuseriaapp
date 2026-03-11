@@ -15,6 +15,7 @@ import ConfirmacionScreen from './screens/ConfirmacionScreen';
 import RegistroPupuseriaScreen from './screens/RegistroPupuseriaScreen';
 import PanelPupuseriaScreen from './screens/PanelPupuseriaScreen';
 import SuscripcionVencidaScreen from './screens/SuscripcionVencidaScreen';
+import MiSaldoScreen from './screens/MiSaldoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,14 +67,12 @@ export default function AppNavigator() {
                             const vencimiento = suscripcion.fecha_vencimiento.toDate();
 
                             if (vencimiento < hoy) {
-                                // Suscripción vencida — bloquear acceso
                                 setSuscripcionVencida(true);
                             } else {
-                                // Suscripción vigente — acceso normal
                                 setSuscripcionVencida(false);
                             }
                         } else {
-                            // No tiene suscripción registrada — bloquear por seguridad
+                            // No tiene suscripción — bloquear por seguridad
                             setSuscripcionVencida(true);
                         }
                     } else {
@@ -118,12 +117,18 @@ export default function AppNavigator() {
                                         initialParams={{ pupuseriaId }}
                                     />
                                 ) : (
-                                    // Suscripción vigente — panel normal
-                                    <Stack.Screen
-                                        name='PanelPupuseria'
-                                        component={PanelPupuseriaScreen}
-                                        initialParams={{ nombre: nombrePupuseria }}
-                                    />
+                                    // Suscripción vigente — panel + mi saldo
+                                    <>
+                                        <Stack.Screen
+                                            name='PanelPupuseria'
+                                            component={PanelPupuseriaScreen}
+                                            initialParams={{ nombre: nombrePupuseria }}
+                                        />
+                                        <Stack.Screen
+                                            name='MiSaldo'
+                                            component={MiSaldoScreen}
+                                        />
+                                    </>
                                 )}
                             </>
                         ) : (

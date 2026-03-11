@@ -7,7 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/f
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
-export default function PanelPupuseriaScreen({ route }) {
+export default function PanelPupuseriaScreen({ route, navigation }) {
   const { nombre } = route.params;
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -20,7 +20,6 @@ export default function PanelPupuseriaScreen({ route }) {
 
     const iniciarListeners = async () => {
       try {
-        // Forzar que el token esté listo antes de iniciar listeners
         await auth.currentUser.getIdToken(true);
 
         if (!activo) return;
@@ -58,7 +57,6 @@ export default function PanelPupuseriaScreen({ route }) {
   }, []);
 
   const escucharPedidos = (id, activo) => {
-    // Cancelar listener anterior si existe
     if (unsubPedidosRef.current) unsubPedidosRef.current();
 
     const qPedidos = query(
@@ -188,6 +186,7 @@ export default function PanelPupuseriaScreen({ route }) {
 
   return (
     <View style={styles.container}>
+
       <View style={styles.header}>
         <View>
           <Text style={styles.headerSub}>Panel de pedidos</Text>
@@ -204,6 +203,19 @@ export default function PanelPupuseriaScreen({ route }) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Botón Mi Saldo destacado debajo del header */}
+      <TouchableOpacity
+        style={styles.botonMiSaldo}
+        onPress={() => navigation.navigate('MiSaldo')}
+      >
+        <Text style={styles.botonMiSaldoIcono}>💳</Text>
+        <View>
+          <Text style={styles.botonMiSaldoTitulo}>Mi saldo</Text>
+          <Text style={styles.botonMiSaldoSub}>Ver estado de suscripción</Text>
+        </View>
+        <Text style={styles.botonMiSaldoFlecha}>→</Text>
+      </TouchableOpacity>
 
       <View style={styles.enVivoBar}>
         <View style={styles.enVivoPunto} />
@@ -250,10 +262,30 @@ const styles = StyleSheet.create({
   botonCerrarSesion: { borderWidth: 1, borderColor: '#9A8A80', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
   botonCerrarSesionTexto: { color: '#9A8A80', fontSize: 12, fontWeight: '600' },
 
+  botonMiSaldo: {
+    backgroundColor: '#FDF6EC',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E8D5C4',
+    gap: 12,
+  },
+  botonMiSaldoIcono: { fontSize: 28 },
+  botonMiSaldoTitulo: { fontSize: 16, fontWeight: '800', color: '#1A0F08' },
+  botonMiSaldoSub: { fontSize: 12, color: '#6B5E57', marginTop: 2 },
+  botonMiSaldoFlecha: { marginLeft: 'auto', fontSize: 18, color: '#E8210A', fontWeight: '800' },
+
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#F0FDF4', padding: 10, paddingHorizontal: 16,
     borderBottomWidth: 1, borderBottomColor: '#BBF7D0', gap: 8,
+    marginTop: 12,
   },
   enVivoPunto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' },
   enVivoTexto: { fontSize: 12, color: '#15803D', fontWeight: '600' },
