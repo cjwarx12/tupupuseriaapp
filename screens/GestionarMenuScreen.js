@@ -3,7 +3,7 @@ import {
     View, Text, TextInput, TouchableOpacity,
     StyleSheet, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -13,9 +13,31 @@ const CATEGORIAS = [
     { id: 'otro', nombre: 'Otro', emoji: '🍽️' },
 ];
 
-const obtenerEmoji = (categoriaId) => {
-    const cat = CATEGORIAS.find(c => c.id === categoriaId);
-    return cat ? cat.emoji : '🍽️';
+const EMOJIS_PUPUSA = [
+    { palabras: ['queso'], emoji: '🧀' },
+    { palabras: ['frijol', 'frijoles'], emoji: '🫘' },
+    { palabras: ['chicharron', 'chicharrón'], emoji: '🥩' },
+    { palabras: ['loroco'], emoji: '🌿' },
+    { palabras: ['revuelta', 'revueltas'], emoji: '🌟' },
+    { palabras: ['camaron', 'camarón'], emoji: '🦐' },
+    { palabras: ['jalapeno', 'jalapeño'], emoji: '🌶️' },
+    { palabras: ['ayote'], emoji: '🎃' },
+    { palabras: ['espinaca'], emoji: '🥬' },
+    { palabras: ['maiz', 'maíz'], emoji: '🌽' },
+    { palabras: ['mora'], emoji: '🫐' },
+];
+
+const obtenerEmoji = (categoriaId, nombreProducto) => {
+    if (categoriaId === 'refresco') return '🥤';
+    if (categoriaId === 'otro') return '🍽️';
+
+    const nombreLower = nombreProducto.toLowerCase();
+    for (const item of EMOJIS_PUPUSA) {
+        if (item.palabras.some(palabra => nombreLower.includes(palabra))) {
+            return item.emoji;
+        }
+    }
+    return '🫓';
 };
 
 export default function GestionarMenuScreen({ navigation }) {
@@ -64,7 +86,7 @@ export default function GestionarMenuScreen({ navigation }) {
             id: Date.now().toString(),
             nombre: nuevoNombre.trim(),
             categoria: nuevaCategoria,
-            emoji: obtenerEmoji(nuevaCategoria),
+            emoji: obtenerEmoji(nuevaCategoria, nuevoNombre.trim()),
             precio: parseFloat(parseFloat(nuevoPrecio).toFixed(2)),
         };
         setMenu(prev => [...prev, item]);
@@ -129,7 +151,6 @@ export default function GestionarMenuScreen({ navigation }) {
 
             <View style={styles.body}>
 
-                {/* Formulario agregar producto */}
                 <Text style={styles.seccionTitulo}>➕ Agregar producto</Text>
 
                 <View style={styles.formulario}>
@@ -174,12 +195,23 @@ export default function GestionarMenuScreen({ navigation }) {
                         </View>
                     </View>
 
+                    {/* Preview del emoji en tiempo real */}
+                    {nuevoNombre.trim().length > 0 && nuevaCategoria === 'pupusa' && (
+                        <View style={styles.previewEmoji}>
+                            <Text style={styles.previewEmojiIcono}>
+                                {obtenerEmoji(nuevaCategoria, nuevoNombre)}
+                            </Text>
+                            <Text style={styles.previewEmojiTexto}>
+                                Así se verá tu producto
+                            </Text>
+                        </View>
+                    )}
+
                     <TouchableOpacity style={styles.botonAgregar} onPress={agregarItem}>
                         <Text style={styles.botonAgregarTexto}>+ Agregar al menú</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Lista actual del menú */}
                 <Text style={styles.seccionTitulo}>
                     📋 Tu menú actual {menu.length > 0 ? `(${menu.length} productos)` : ''}
                 </Text>
@@ -331,6 +363,14 @@ const styles = StyleSheet.create({
     categoriaEmoji: { fontSize: 16 },
     categoriaTexto: { fontSize: 13, color: '#6B5E57', fontWeight: '600' },
     categoriaTextoActivo: { color: '#E8210A' },
+
+    previewEmoji: {
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        backgroundColor: '#FFF8F2', borderRadius: 10, padding: 12,
+        marginBottom: 12, borderWidth: 1, borderColor: '#E8D5C4',
+    },
+    previewEmojiIcono: { fontSize: 28 },
+    previewEmojiTexto: { fontSize: 13, color: '#6B5E57', fontWeight: '500' },
 
     botonAgregar: {
         backgroundColor: '#1A0F08', borderRadius: 12,
