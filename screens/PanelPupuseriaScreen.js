@@ -10,10 +10,12 @@ import { db, auth } from '../firebaseConfig';
 export default function PanelPupuseriaScreen({ route, navigation }) {
   const { nombre } = route.params;
   const [pedidos, setPedidos] = useState([]);
+  const [totalHoy, setTotalHoy] = useState(0);
   const [cargando, setCargando] = useState(true);
 
   const unsubPupuseriaRef = useRef(null);
   const unsubPedidosRef = useRef(null);
+  const unsubTotalRef = useRef(null);
 
   useEffect(() => {
     let activo = true;
@@ -21,7 +23,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     const iniciarListeners = async () => {
       try {
         await auth.currentUser.getIdToken(true);
-
         if (!activo) return;
 
         const qPupuseria = query(
@@ -34,6 +35,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           if (!snapshot.empty) {
             const id = snapshot.docs[0].id;
             escucharPedidos(id, activo);
+            escucharTotalHoy(id, activo);
           }
           setCargando(false);
         }, (error) => {
@@ -53,6 +55,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       activo = false;
       if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
       if (unsubPedidosRef.current) unsubPedidosRef.current();
+      if (unsubTotalRef.current) unsubTotalRef.current();
     };
   }, []);
 
@@ -75,12 +78,37 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       lista.sort((a, b) => {
         if (a.estado === 'pendiente' && b.estado !== 'pendiente') return -1;
         if (a.estado !== 'pendiente' && b.estado === 'pendiente') return 1;
+        if (a.fecha && b.fecha) return a.fecha.seconds - b.fecha.seconds;
         return 0;
       });
 
       setPedidos(lista);
     }, (error) => {
       console.log('Error listener pedidos:', error.code);
+    });
+  };
+
+  const escucharTotalHoy = (id, activo) => {
+    if (unsubTotalRef.current) unsubTotalRef.current();
+
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+
+    const qTotal = query(
+      collection(db, 'pedidos'),
+      where('pupuseria_id', '==', id),
+    );
+
+    unsubTotalRef.current = onSnapshot(qTotal, (snapshot) => {
+      if (!activo) return;
+      const hoy = snapshot.docs.filter(doc => {
+        const fecha = doc.data().fecha;
+        if (!fecha) return false;
+        return fecha.toDate() >= inicioHoy;
+      });
+      setTotalHoy(hoy.length);
+    }, (error) => {
+      console.log('Error listener total:', error.code);
     });
   };
 
@@ -96,6 +124,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           onPress: async () => {
             if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
             if (unsubPedidosRef.current) unsubPedidosRef.current();
+            if (unsubTotalRef.current) unsubTotalRef.current();
             try {
               await signOut(auth);
             } catch (error) {
@@ -135,42 +164,74 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     );
   };
 
-  const renderPedido = ({ item }) => {
+  const numeroPedido = (index) => {
+    const num = (index + 1).toString().padStart(2, '0');
+    return `#${num}`;
+  };
+
+  const tiempoRelativo = (fecha) => {
+    if (!fecha || !fecha.toDate) return '';
+    const ahora = new Date();
+    const diff = Math.floor((ahora - fecha.toDate()) / 60000);
+    if (diff < 1) return 'ahora';
+    if (diff === 1) return 'hace 1 min';
+    return `hace ${diff} min`;
+  };
+
+  const renderPedido = ({ item, index }) => {
     const esListo = item.estado === 'listo';
     return (
       <View style={[styles.tarjeta, esListo && styles.tarjetaLista]}>
+
         <View style={styles.tarjetaHeader}>
-          <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
-            <Text style={styles.badgeTexto}>
-              {esListo ? '✅ Listo' : '🕐 Pendiente'}
-            </Text>
+          <View style={styles.tarjetaHeaderIzq}>
+            <Text style={styles.numeroPedido}>{numeroPedido(index)}</Text>
+            <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
+              <Text style={styles.badgeTexto}>
+                {esListo ? '✅ Listo' : '🕐 Pendiente'}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.tarjetaTotal}>{item.total} items</Text>
+          <Text style={styles.tiempoTexto}>{tiempoRelativo(item.fecha)}</Text>
         </View>
 
         <View style={styles.detalleBox}>
-          {item.detalle && item.detalle.map((d, i) => (
-            <Text key={i} style={styles.detalleLinea}>• {d.cantidad}x {d.tipo}</Text>
-          ))}
+          {item.detalle && (() => {
+            const items = item.detalle;
+            const filas = [];
+            for (let i = 0; i < items.length; i += 2) {
+              filas.push(
+                <View key={i} style={styles.detalleFila}>
+                  <Text style={styles.detalleLinea}>
+                    · {items[i].cantidad} {items[i].tipo}
+                  </Text>
+                  {items[i + 1] && (
+                    <Text style={styles.detalleLinea}>
+                      · {items[i + 1].cantidad} {items[i + 1].tipo}
+                    </Text>
+                  )}
+                </View>
+              );
+            }
+            return filas;
+          })()}
         </View>
 
-        {item.fecha && (
-          <Text style={styles.tarjetaFecha}>
-            🕐 {item.fecha.toDate
-              ? item.fecha.toDate().toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit' })
-              : 'Ahora'}
+        <View style={styles.tarjetaFooter}>
+          <Text style={styles.totalItems}>
+            {item.total} items · <Text style={styles.totalPrecio}>${item.total_precio ? item.total_precio.toFixed(2) : '—'}</Text>
           </Text>
-        )}
+          {!esListo ? (
+            <TouchableOpacity style={styles.botonListo} onPress={() => marcarListo(item.id)}>
+              <Text style={styles.botonListoTexto}>✅ Marcar como LISTO</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.botonEntregado} onPress={() => marcarEntregado(item.id)}>
+              <Text style={styles.botonEntregadoTexto}>📦 Cliente recogiendo...</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {!esListo ? (
-          <TouchableOpacity style={styles.botonListo} onPress={() => marcarListo(item.id)}>
-            <Text style={styles.botonListoTexto}>✅ Marcar como listo</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.botonEntregado} onPress={() => marcarEntregado(item.id)}>
-            <Text style={styles.botonEntregadoTexto}>📦 Marcar como entregado</Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -184,6 +245,8 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     );
   }
 
+  const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;
+
   return (
     <View style={styles.container}>
 
@@ -193,18 +256,34 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           <Text style={styles.headerNombre}>{nombre}</Text>
         </View>
         <View style={styles.headerDerecha}>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeTexto}>
-              {pedidos.filter(p => p.estado === 'pendiente').length} nuevos
-            </Text>
-          </View>
+          {pendientes > 0 && (
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeTexto}>{pendientes} nuevos</Text>
+            </View>
+          )}
           <TouchableOpacity style={styles.botonCerrarSesion} onPress={cerrarSesion}>
             <Text style={styles.botonCerrarSesionTexto}>Salir</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Botones de acciones rápidas */}
+      <View style={styles.statsBar}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumero}>{totalHoy}</Text>
+          <Text style={styles.statLabel}>Pedidos hoy</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumero}>{pedidos.length}</Text>
+          <Text style={styles.statLabel}>Activos ahora</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumero}>{pendientes}</Text>
+          <Text style={styles.statLabel}>Pendientes</Text>
+        </View>
+      </View>
+
       <View style={styles.accionesRapidas}>
         <TouchableOpacity
           style={styles.accionBtn}
@@ -258,81 +337,119 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF8F2' },
-  centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF8F2' },
-  cargandoTexto: { marginTop: 12, fontSize: 14, color: '#6B5E57' },
+  container: { flex: 1, backgroundColor: '#0F0A06' },
+  centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F0A06' },
+  cargandoTexto: { marginTop: 12, fontSize: 14, color: '#9A8A80' },
 
   header: {
-    backgroundColor: '#1A0F08',
+    backgroundColor: '#0F0A06',
     padding: 24,
     paddingTop: 56,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A1F18',
   },
-  headerSub: { fontSize: 12, color: '#9A8A80', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
+  headerSub: { fontSize: 12, color: '#6B5E57', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
   headerNombre: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
   headerDerecha: { alignItems: 'flex-end', gap: 8 },
   headerBadge: { backgroundColor: '#E8210A', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   headerBadgeTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  botonCerrarSesion: { borderWidth: 1, borderColor: '#9A8A80', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  botonCerrarSesionTexto: { color: '#9A8A80', fontSize: 12, fontWeight: '600' },
+  botonCerrarSesion: { borderWidth: 1, borderColor: '#3A2F28', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  botonCerrarSesionTexto: { color: '#6B5E57', fontSize: 12, fontWeight: '600' },
+
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1008',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A1F18',
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNumero: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
+  statLabel: { fontSize: 11, color: '#6B5E57', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDivider: { width: 1, backgroundColor: '#2A1F18' },
 
   accionesRapidas: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1008',
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E8D5C4',
+    borderWidth: 1,
+    borderColor: '#2A1F18',
     overflow: 'hidden',
   },
-  accionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-  },
-  accionesSeparador: { height: 1, backgroundColor: '#E8D5C4', marginHorizontal: 16 },
-  accionEmoji: { fontSize: 26 },
-  accionTitulo: { fontSize: 15, fontWeight: '800', color: '#1A0F08' },
+  accionBtn: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  accionesSeparador: { height: 1, backgroundColor: '#2A1F18', marginHorizontal: 16 },
+  accionEmoji: { fontSize: 24 },
+  accionTitulo: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   accionSub: { fontSize: 12, color: '#6B5E57', marginTop: 2 },
-  accionFlecha: { marginLeft: 'auto', fontSize: 18, color: '#E8210A', fontWeight: '800' },
+  accionFlecha: { marginLeft: 'auto', fontSize: 16, color: '#E8210A', fontWeight: '800' },
 
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F0FDF4', padding: 10, paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#BBF7D0', gap: 8,
-    marginTop: 12,
+    backgroundColor: '#0A1A0F', padding: 10, paddingHorizontal: 16,
+    borderBottomWidth: 1, borderBottomColor: '#0F2A18',
+    gap: 8, marginTop: 12,
   },
   enVivoPunto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16A34A' },
-  enVivoTexto: { fontSize: 12, color: '#15803D', fontWeight: '600' },
+  enVivoTexto: { fontSize: 12, color: '#16A34A', fontWeight: '600' },
 
-  lista: { padding: 16, gap: 14 },
+  lista: { padding: 16, gap: 12 },
 
   tarjeta: {
-    backgroundColor: '#FFFFFF', borderRadius: 16,
-    padding: 18, borderWidth: 1.5, borderColor: '#E8D5C4',
+    backgroundColor: '#1A1008',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2A1F18',
   },
-  tarjetaLista: { borderColor: '#BBF7D0', backgroundColor: '#F0FDF4' },
-  tarjetaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  badge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  badgePendiente: { backgroundColor: '#FEF9C3' },
-  badgeListo: { backgroundColor: '#DCFCE7' },
-  badgeTexto: { fontSize: 12, fontWeight: '700' },
-  tarjetaTotal: { fontSize: 18, fontWeight: '800', color: '#E8210A' },
+  tarjetaLista: {
+    borderColor: '#14532D',
+    backgroundColor: '#0A1F12',
+  },
 
-  detalleBox: { marginBottom: 10, gap: 4 },
-  detalleLinea: { fontSize: 14, color: '#1A0F08' },
-  tarjetaFecha: { fontSize: 12, color: '#6B5E57', marginBottom: 14 },
+  tarjetaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  numeroPedido: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
+  badgePendiente: { backgroundColor: '#2A1F00' },
+  badgeListo: { backgroundColor: '#0A2A14' },
+  badgeTexto: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  tiempoTexto: { fontSize: 11, color: '#6B5E57' },
 
-  botonListo: { backgroundColor: '#E8210A', borderRadius: 12, padding: 14, alignItems: 'center' },
+  detalleBox: { marginBottom: 14, gap: 6 },
+  detalleFila: { flexDirection: 'row', gap: 8 },
+  detalleLinea: { flex: 1, fontSize: 13, color: '#C4B5AC' },
+
+  tarjetaFooter: { gap: 10 },
+  totalItems: { fontSize: 14, color: '#9A8A80', fontWeight: '600' },
+  totalPrecio: { fontSize: 14, color: '#E8210A', fontWeight: '800' },
+
+  botonListo: {
+    backgroundColor: '#E8210A',
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+  },
   botonListoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  botonEntregado: { backgroundColor: '#1A0F08', borderRadius: 12, padding: 14, alignItems: 'center' },
+
+  botonEntregado: {
+    backgroundColor: '#14532D',
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+  },
   botonEntregadoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
   vacioCentro: { alignItems: 'center', marginTop: 60 },
   vacioEmoji: { fontSize: 48, marginBottom: 16 },
-  vacioTexto: { fontSize: 18, fontWeight: '800', color: '#1A0F08', marginBottom: 8 },
+  vacioTexto: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
   vacioSub: { fontSize: 14, color: '#6B5E57', textAlign: 'center', lineHeight: 20 },
 });
