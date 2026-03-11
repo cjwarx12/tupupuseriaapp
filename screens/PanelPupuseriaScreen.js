@@ -145,7 +145,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
               {esListo ? '✅ Listo' : '🕐 Pendiente'}
             </Text>
           </View>
-          <Text style={styles.tarjetaTotal}>{item.total} pupusas</Text>
+          <Text style={styles.tarjetaTotal}>{item.total} items</Text>
         </View>
 
         <View style={styles.detalleBox}>
@@ -204,18 +204,34 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* Botón Mi Saldo destacado debajo del header */}
-      <TouchableOpacity
-        style={styles.botonMiSaldo}
-        onPress={() => navigation.navigate('MiSaldo')}
-      >
-        <Text style={styles.botonMiSaldoIcono}>💳</Text>
-        <View>
-          <Text style={styles.botonMiSaldoTitulo}>Mi saldo</Text>
-          <Text style={styles.botonMiSaldoSub}>Ver estado de suscripción</Text>
-        </View>
-        <Text style={styles.botonMiSaldoFlecha}>→</Text>
-      </TouchableOpacity>
+      {/* Botones de acciones rápidas */}
+      <View style={styles.accionesRapidas}>
+        <TouchableOpacity
+          style={styles.accionBtn}
+          onPress={() => navigation.navigate('MiSaldo')}
+        >
+          <Text style={styles.accionEmoji}>💳</Text>
+          <View>
+            <Text style={styles.accionTitulo}>Mi saldo</Text>
+            <Text style={styles.accionSub}>Ver suscripción</Text>
+          </View>
+          <Text style={styles.accionFlecha}>→</Text>
+        </TouchableOpacity>
+
+        <View style={styles.accionesSeparador} />
+
+        <TouchableOpacity
+          style={styles.accionBtn}
+          onPress={() => navigation.navigate('GestionarMenu')}
+        >
+          <Text style={styles.accionEmoji}>🍽️</Text>
+          <View>
+            <Text style={styles.accionTitulo}>Mi menú</Text>
+            <Text style={styles.accionSub}>Agregar o editar productos</Text>
+          </View>
+          <Text style={styles.accionFlecha}>→</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.enVivoBar}>
         <View style={styles.enVivoPunto} />
@@ -262,24 +278,26 @@ const styles = StyleSheet.create({
   botonCerrarSesion: { borderWidth: 1, borderColor: '#9A8A80', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
   botonCerrarSesionTexto: { color: '#9A8A80', fontSize: 12, fontWeight: '600' },
 
-  botonMiSaldo: {
-    backgroundColor: '#FDF6EC',
+  accionesRapidas: {
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 4,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#E8D5C4',
+    overflow: 'hidden',
+  },
+  accionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     gap: 12,
   },
-  botonMiSaldoIcono: { fontSize: 28 },
-  botonMiSaldoTitulo: { fontSize: 16, fontWeight: '800', color: '#1A0F08' },
-  botonMiSaldoSub: { fontSize: 12, color: '#6B5E57', marginTop: 2 },
-  botonMiSaldoFlecha: { marginLeft: 'auto', fontSize: 18, color: '#E8210A', fontWeight: '800' },
+  accionesSeparador: { height: 1, backgroundColor: '#E8D5C4', marginHorizontal: 16 },
+  accionEmoji: { fontSize: 26 },
+  accionTitulo: { fontSize: 15, fontWeight: '800', color: '#1A0F08' },
+  accionSub: { fontSize: 12, color: '#6B5E57', marginTop: 2 },
+  accionFlecha: { marginLeft: 'auto', fontSize: 18, color: '#E8210A', fontWeight: '800' },
 
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',

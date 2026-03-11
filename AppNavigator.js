@@ -16,6 +16,7 @@ import RegistroPupuseriaScreen from './screens/RegistroPupuseriaScreen';
 import PanelPupuseriaScreen from './screens/PanelPupuseriaScreen';
 import SuscripcionVencidaScreen from './screens/SuscripcionVencidaScreen';
 import MiSaldoScreen from './screens/MiSaldoScreen';
+import GestionarMenuScreen from './screens/GestionarMenuScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -72,7 +73,6 @@ export default function AppNavigator() {
                                 setSuscripcionVencida(false);
                             }
                         } else {
-                            // No tiene suscripción — bloquear por seguridad
                             setSuscripcionVencida(true);
                         }
                     } else {
@@ -93,7 +93,6 @@ export default function AppNavigator() {
         return unsuscribe;
     }, []);
 
-    // Mostrar splash mientras verifica
     if (mostrarSplash || usuario === undefined || verificando) {
         return (
             <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#E8210A' }}>
@@ -110,14 +109,12 @@ export default function AppNavigator() {
                         {esDueno ? (
                             <>
                                 {suscripcionVencida ? (
-                                    // Suscripción vencida — pantalla de bloqueo
                                     <Stack.Screen
                                         name='SuscripcionVencida'
                                         component={SuscripcionVencidaScreen}
                                         initialParams={{ pupuseriaId }}
                                     />
                                 ) : (
-                                    // Suscripción vigente — panel + mi saldo
                                     <>
                                         <Stack.Screen
                                             name='PanelPupuseria'
@@ -127,6 +124,10 @@ export default function AppNavigator() {
                                         <Stack.Screen
                                             name='MiSaldo'
                                             component={MiSaldoScreen}
+                                        />
+                                        <Stack.Screen
+                                            name='GestionarMenu'
+                                            component={GestionarMenuScreen}
                                         />
                                     </>
                                 )}
