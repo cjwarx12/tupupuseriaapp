@@ -41,7 +41,6 @@ export default function AppNavigator() {
             if (user) {
                 setVerificando(true);
                 try {
-                    // Paso 1 — verificar si es dueño
                     const qPupuseria = query(
                         collection(db, 'pupuserias'),
                         where('dueno_uid', '==', user.uid)
@@ -55,7 +54,6 @@ export default function AppNavigator() {
                         setNombrePupuseria(datosPupuseria.nombre);
                         setPupuseriaId(idPupuseria);
 
-                        // Paso 2 — verificar suscripción directo al servidor (sin caché)
                         const qSuscripcion = query(
                             collection(db, 'suscripciones'),
                             where('dueno_uid', '==', user.uid)
@@ -95,7 +93,7 @@ export default function AppNavigator() {
 
     if (mostrarSplash || usuario === undefined || verificando) {
         return (
-            <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#E8210A' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
                 <SplashScreen />
             </View>
         );
