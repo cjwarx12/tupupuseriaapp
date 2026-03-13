@@ -52,8 +52,8 @@ export default function LoginScreen({ navigation }) {
                         resizeMode="contain"
                     />
                     <Text style={styles.nombre}>
-                        <Text style={styles.nombreNegro}>TuPupuseria</Text>
-                        <Text style={styles.nombreRojo}>App</Text>
+                        <Text style={styles.nombreOscuro}>TuPupuseria</Text>
+                        <Text style={styles.nombreDorado}>App</Text>
                     </Text>
                 </View>
 
@@ -63,7 +63,7 @@ export default function LoginScreen({ navigation }) {
                     <TextInput
                         style={styles.input}
                         placeholder="Ej: 71234567"
-                        placeholderTextColor="#B0A098"
+                        placeholderTextColor="#B0956A"
                         value={telefono}
                         onChangeText={setTelefono}
                         keyboardType="phone-pad"
@@ -76,7 +76,7 @@ export default function LoginScreen({ navigation }) {
                     <TextInput
                         style={styles.input}
                         placeholder="Tu contraseña"
-                        placeholderTextColor="#B0A098"
+                        placeholderTextColor="#B0956A"
                         value={contrasena}
                         onChangeText={setContrasena}
                         secureTextEntry
@@ -95,7 +95,6 @@ export default function LoginScreen({ navigation }) {
                     )}
                 </TouchableOpacity>
 
-                {/* Crear cuenta */}
                 <TouchableOpacity
                     style={styles.botonCrear}
                     onPress={() => navigation.navigate('Registro')}
@@ -103,14 +102,12 @@ export default function LoginScreen({ navigation }) {
                     <Text style={styles.botonCrearTexto}>Crear cuenta nueva</Text>
                 </TouchableOpacity>
 
-                {/* Divider negocio */}
                 <View style={styles.dividerContainer}>
                     <View style={styles.dividerLinea} />
                     <Text style={styles.dividerTexto}>¿Tienes un negocio?</Text>
                     <View style={styles.dividerLinea} />
                 </View>
 
-                {/* Tarjeta registrar pupusería */}
                 <TouchableOpacity
                     style={styles.tarjetaPupuseria}
                     onPress={() => navigation.navigate('RegistroPupuseria')}
@@ -135,7 +132,7 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FDF6EE',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 28,
@@ -156,12 +153,12 @@ const styles = StyleSheet.create({
         letterSpacing: -0.5,
         marginTop: 4,
     },
-    nombreNegro: {
-        color: '#1A0F08',
+    nombreOscuro: {
+        color: '#2D1200',
         fontWeight: '900',
     },
-    nombreRojo: {
-        color: '#E8210A',
+    nombreDorado: {
+        color: '#D4850A',
         fontWeight: '900',
     },
 
@@ -169,21 +166,23 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#1A0F08',
+        color: '#2D1200',
         marginBottom: 8,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     input: {
-        backgroundColor: '#F5F5F5',
+        backgroundColor: '#FFFAF3',
+        borderWidth: 1.5,
+        borderColor: '#E8D5B7',
         borderRadius: 12,
         padding: 16,
         fontSize: 15,
-        color: '#1A0F08',
+        color: '#2D1200',
     },
 
     botonLogin: {
-        backgroundColor: '#E8210A',
+        backgroundColor: '#D4850A',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
@@ -200,7 +199,7 @@ const styles = StyleSheet.create({
 
     botonCrear: {
         borderWidth: 1.5,
-        borderColor: '#E8210A',
+        borderColor: '#D4850A',
         borderRadius: 12,
         padding: 14,
         alignItems: 'center',
@@ -208,7 +207,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     botonCrearTexto: {
-        color: '#E8210A',
+        color: '#D4850A',
         fontSize: 15,
         fontWeight: '700',
     },
@@ -223,16 +222,16 @@ const styles = StyleSheet.create({
     dividerLinea: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E8D5C4',
+        backgroundColor: '#E8D5B7',
     },
     dividerTexto: {
         fontSize: 13,
-        color: '#6B5E57',
+        color: '#7A5C3A',
         fontWeight: '500',
     },
 
     tarjetaPupuseria: {
-        backgroundColor: '#1A0F08',
+        backgroundColor: '#1C0A00',
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
@@ -255,12 +254,12 @@ const styles = StyleSheet.create({
     },
     tarjetaSub: {
         fontSize: 12,
-        color: '#9A8A80',
+        color: '#B0956A',
         marginTop: 2,
     },
     tarjetaFlecha: {
         fontSize: 18,
-        color: '#E8210A',
+        color: '#D4850A',
         fontWeight: '800',
     },
 });

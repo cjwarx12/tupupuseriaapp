@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, ScrollView, Alert, ActivityIndicator
+    StyleSheet, ScrollView, Alert, ActivityIndicator, StatusBar
 } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
@@ -30,7 +30,6 @@ const EMOJIS_PUPUSA = [
 const obtenerEmoji = (categoriaId, nombreProducto) => {
     if (categoriaId === 'refresco') return '🥤';
     if (categoriaId === 'otro') return '🍽️';
-
     const nombreLower = nombreProducto.toLowerCase();
     for (const item of EMOJIS_PUPUSA) {
         if (item.palabras.some(palabra => nombreLower.includes(palabra))) {
@@ -45,27 +44,19 @@ export default function GestionarMenuScreen({ navigation }) {
     const [pupuseriaId, setPupuseriaId] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
-
     const [nuevoNombre, setNuevoNombre] = useState('');
     const [nuevoPrecio, setNuevoPrecio] = useState('');
     const [nuevaCategoria, setNuevaCategoria] = useState('pupusa');
 
-    useEffect(() => {
-        cargarMenu();
-    }, []);
+    useEffect(() => { cargarMenu(); }, []);
 
     const cargarMenu = async () => {
         try {
-            const q = query(
-                collection(db, 'pupuserias'),
-                where('dueno_uid', '==', auth.currentUser.uid)
-            );
+            const q = query(collection(db, 'pupuserias'), where('dueno_uid', '==', auth.currentUser.uid));
             const snapshot = await getDocs(q);
             if (!snapshot.empty) {
-                const id = snapshot.docs[0].id;
-                const datos = snapshot.docs[0].data();
-                setPupuseriaId(id);
-                setMenu(datos.menu || []);
+                setPupuseriaId(snapshot.docs[0].id);
+                setMenu(snapshot.docs[0].data().menu || []);
             }
         } catch (error) {
             Alert.alert('Error', 'No se pudo cargar el menú.');
@@ -74,14 +65,8 @@ export default function GestionarMenuScreen({ navigation }) {
     };
 
     const agregarItem = () => {
-        if (!nuevoNombre.trim()) {
-            Alert.alert('Error', 'Escribe el nombre del producto.');
-            return;
-        }
-        if (!nuevoPrecio || isNaN(nuevoPrecio) || parseFloat(nuevoPrecio) <= 0) {
-            Alert.alert('Error', 'Ingresa un precio válido.');
-            return;
-        }
+        if (!nuevoNombre.trim()) { Alert.alert('Error', 'Escribe el nombre del producto.'); return; }
+        if (!nuevoPrecio || isNaN(nuevoPrecio) || parseFloat(nuevoPrecio) <= 0) { Alert.alert('Error', 'Ingresa un precio válido.'); return; }
         const item = {
             id: Date.now().toString(),
             nombre: nuevoNombre.trim(),
@@ -96,30 +81,17 @@ export default function GestionarMenuScreen({ navigation }) {
     };
 
     const eliminarItem = (id) => {
-        Alert.alert(
-            'Eliminar producto',
-            '¿Seguro que quieres eliminar este producto del menú?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: () => setMenu(prev => prev.filter(item => item.id !== id))
-                }
-            ]
-        );
+        Alert.alert('Eliminar producto', '¿Seguro que quieres eliminar este producto?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Eliminar', style: 'destructive', onPress: () => setMenu(prev => prev.filter(item => item.id !== id)) }
+        ]);
     };
 
     const guardarMenu = async () => {
-        if (menu.length === 0) {
-            Alert.alert('Error', 'Agrega al menos un producto al menú.');
-            return;
-        }
+        if (menu.length === 0) { Alert.alert('Error', 'Agrega al menos un producto.'); return; }
         setGuardando(true);
         try {
-            await updateDoc(doc(db, 'pupuserias', pupuseriaId), {
-                menu: menu,
-            });
+            await updateDoc(doc(db, 'pupuserias', pupuseriaId), { menu });
             Alert.alert('✅ Menú guardado', 'Los cambios se guardaron correctamente.', [
                 { text: 'Listo', onPress: () => navigation.goBack() }
             ]);
@@ -132,7 +104,8 @@ export default function GestionarMenuScreen({ navigation }) {
     if (cargando) {
         return (
             <View style={styles.centrado}>
-                <ActivityIndicator size="large" color="#E8210A" />
+                <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
+                <ActivityIndicator size="large" color="#D4850A" />
                 <Text style={styles.cargandoTexto}>Cargando menú...</Text>
             </View>
         );
@@ -140,6 +113,7 @@ export default function GestionarMenuScreen({ navigation }) {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botonRegresar}>
@@ -150,7 +124,6 @@ export default function GestionarMenuScreen({ navigation }) {
             </View>
 
             <View style={styles.body}>
-
                 <Text style={styles.seccionTitulo}>➕ Agregar producto</Text>
 
                 <View style={styles.formulario}>
@@ -159,7 +132,7 @@ export default function GestionarMenuScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Ej: Pupusa de queso"
-                            placeholderTextColor="#B0A098"
+                            placeholderTextColor="#B0956A"
                             value={nuevoNombre}
                             onChangeText={setNuevoNombre}
                         />
@@ -170,7 +143,7 @@ export default function GestionarMenuScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Ej: 0.50"
-                            placeholderTextColor="#B0A098"
+                            placeholderTextColor="#B0956A"
                             value={nuevoPrecio}
                             onChangeText={setNuevoPrecio}
                             keyboardType="decimal-pad"
@@ -195,15 +168,10 @@ export default function GestionarMenuScreen({ navigation }) {
                         </View>
                     </View>
 
-                    {/* Preview del emoji en tiempo real */}
                     {nuevoNombre.trim().length > 0 && nuevaCategoria === 'pupusa' && (
                         <View style={styles.previewEmoji}>
-                            <Text style={styles.previewEmojiIcono}>
-                                {obtenerEmoji(nuevaCategoria, nuevoNombre)}
-                            </Text>
-                            <Text style={styles.previewEmojiTexto}>
-                                Así se verá tu producto
-                            </Text>
+                            <Text style={styles.previewEmojiIcono}>{obtenerEmoji(nuevaCategoria, nuevoNombre)}</Text>
+                            <Text style={styles.previewEmojiTexto}>Así se verá tu producto</Text>
                         </View>
                     )}
 
@@ -224,71 +192,28 @@ export default function GestionarMenuScreen({ navigation }) {
                     </View>
                 ) : (
                     <>
-                        {/* Pupusas */}
-                        {menu.filter(i => i.categoria === 'pupusa').length > 0 && (
-                            <View style={styles.categoriaSeccion}>
-                                <Text style={styles.categoriaSeccionTitulo}>🫓 Pupusas</Text>
-                                {menu.filter(i => i.categoria === 'pupusa').map(item => (
-                                    <View key={item.id} style={styles.menuItem}>
-                                        <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
-                                        <View style={styles.menuItemInfo}>
-                                            <Text style={styles.menuItemNombre}>{item.nombre}</Text>
-                                            <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
+                        {['pupusa', 'refresco', 'otro'].map(cat => {
+                            const items = menu.filter(i => i.categoria === cat);
+                            if (items.length === 0) return null;
+                            const labels = { pupusa: '🫓 Pupusas', refresco: '🥤 Refrescos', otro: '🍽️ Otros' };
+                            return (
+                                <View key={cat} style={styles.categoriaSeccion}>
+                                    <Text style={styles.categoriaSeccionTitulo}>{labels[cat]}</Text>
+                                    {items.map(item => (
+                                        <View key={item.id} style={styles.menuItem}>
+                                            <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+                                            <View style={styles.menuItemInfo}>
+                                                <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                                                <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
+                                            </View>
+                                            <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                                                <Text style={styles.menuItemEliminarTexto}>✕</Text>
+                                            </TouchableOpacity>
                                         </View>
-                                        <TouchableOpacity
-                                            onPress={() => eliminarItem(item.id)}
-                                            style={styles.menuItemEliminar}
-                                        >
-                                            <Text style={styles.menuItemEliminarTexto}>✕</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
-
-                        {/* Refrescos */}
-                        {menu.filter(i => i.categoria === 'refresco').length > 0 && (
-                            <View style={styles.categoriaSeccion}>
-                                <Text style={styles.categoriaSeccionTitulo}>🥤 Refrescos</Text>
-                                {menu.filter(i => i.categoria === 'refresco').map(item => (
-                                    <View key={item.id} style={styles.menuItem}>
-                                        <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
-                                        <View style={styles.menuItemInfo}>
-                                            <Text style={styles.menuItemNombre}>{item.nombre}</Text>
-                                            <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
-                                        </View>
-                                        <TouchableOpacity
-                                            onPress={() => eliminarItem(item.id)}
-                                            style={styles.menuItemEliminar}
-                                        >
-                                            <Text style={styles.menuItemEliminarTexto}>✕</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
-
-                        {/* Otros */}
-                        {menu.filter(i => i.categoria === 'otro').length > 0 && (
-                            <View style={styles.categoriaSeccion}>
-                                <Text style={styles.categoriaSeccionTitulo}>🍽️ Otros</Text>
-                                {menu.filter(i => i.categoria === 'otro').map(item => (
-                                    <View key={item.id} style={styles.menuItem}>
-                                        <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
-                                        <View style={styles.menuItemInfo}>
-                                            <Text style={styles.menuItemNombre}>{item.nombre}</Text>
-                                            <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
-                                        </View>
-                                        <TouchableOpacity
-                                            onPress={() => eliminarItem(item.id)}
-                                            style={styles.menuItemEliminar}
-                                        >
-                                            <Text style={styles.menuItemEliminarTexto}>✕</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
+                                    ))}
+                                </View>
+                            );
+                        })}
 
                         <TouchableOpacity
                             style={[styles.botonGuardar, guardando && styles.botonDeshabilitado]}
@@ -309,106 +234,97 @@ export default function GestionarMenuScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFF8F2' },
+    container: { flex: 1, backgroundColor: '#FDF6EE' },
     content: { paddingBottom: 48 },
-    centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF8F2' },
-    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#6B5E57' },
+    centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6EE' },
+    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#7A5C3A' },
 
     header: {
-        backgroundColor: '#1A0F08',
-        paddingTop: 56,
-        paddingBottom: 24,
-        paddingHorizontal: 24,
+        backgroundColor: '#1C0A00',
+        paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24,
     },
     botonRegresar: {
-        backgroundColor: '#FDF6EC',
-        alignSelf: 'flex-start',
-        borderRadius: 10,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginBottom: 16,
+        backgroundColor: '#D4850A', alignSelf: 'flex-start',
+        borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 16,
     },
-    botonRegresarTexto: { color: '#1A0F08', fontSize: 14, fontWeight: '700' },
+    botonRegresarTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
     headerTitulo: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
-    headerSub: { fontSize: 13, color: '#9A8A80' },
+    headerSub: { fontSize: 13, color: '#B0956A' },
 
     body: { padding: 20 },
 
-    seccionTitulo: {
-        fontSize: 16, fontWeight: '800', color: '#1A0F08',
-        marginBottom: 12, marginTop: 8,
-    },
+    seccionTitulo: { fontSize: 16, fontWeight: '800', color: '#2D1200', marginBottom: 12, marginTop: 8 },
 
     formulario: {
-        backgroundColor: '#FFFFFF', borderRadius: 16,
-        padding: 16, borderWidth: 1.5, borderColor: '#E8D5C4', marginBottom: 24,
+        backgroundColor: '#FFFAF3', borderRadius: 16,
+        padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 24,
     },
     grupo: { marginBottom: 16 },
     label: {
-        fontSize: 13, fontWeight: '600', color: '#1A0F08',
+        fontSize: 13, fontWeight: '600', color: '#2D1200',
         marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
     },
     input: {
-        backgroundColor: '#FFF8F2', borderWidth: 1.5, borderColor: '#E8D5C4',
-        borderRadius: 12, padding: 14, fontSize: 15, color: '#1A0F08',
+        backgroundColor: '#FDF6EE', borderWidth: 1.5, borderColor: '#E8D5B7',
+        borderRadius: 12, padding: 14, fontSize: 15, color: '#2D1200',
     },
 
     categorias: { flexDirection: 'row', gap: 10 },
     categoriaBtn: {
         flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         gap: 6, borderRadius: 10, padding: 10,
-        borderWidth: 1.5, borderColor: '#E8D5C4', backgroundColor: '#FFF8F2',
+        borderWidth: 1.5, borderColor: '#E8D5B7', backgroundColor: '#FDF6EE',
     },
-    categoriaBtnActivo: { borderColor: '#E8210A', backgroundColor: '#FEF2F2' },
+    categoriaBtnActivo: { borderColor: '#D4850A', backgroundColor: '#FEF3E2' },
     categoriaEmoji: { fontSize: 16 },
-    categoriaTexto: { fontSize: 13, color: '#6B5E57', fontWeight: '600' },
-    categoriaTextoActivo: { color: '#E8210A' },
+    categoriaTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '600' },
+    categoriaTextoActivo: { color: '#D4850A' },
 
     previewEmoji: {
         flexDirection: 'row', alignItems: 'center', gap: 10,
-        backgroundColor: '#FFF8F2', borderRadius: 10, padding: 12,
-        marginBottom: 12, borderWidth: 1, borderColor: '#E8D5C4',
+        backgroundColor: '#FDF6EE', borderRadius: 10, padding: 12,
+        marginBottom: 12, borderWidth: 1, borderColor: '#E8D5B7',
     },
     previewEmojiIcono: { fontSize: 28 },
-    previewEmojiTexto: { fontSize: 13, color: '#6B5E57', fontWeight: '500' },
+    previewEmojiTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '500' },
 
     botonAgregar: {
-        backgroundColor: '#1A0F08', borderRadius: 12,
+        backgroundColor: '#1C0A00', borderRadius: 12,
         padding: 14, alignItems: 'center', marginTop: 4,
     },
     botonAgregarTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 
     categoriaSeccion: {
-        backgroundColor: '#FFFFFF', borderRadius: 16,
-        borderWidth: 1.5, borderColor: '#E8D5C4',
+        backgroundColor: '#FFFAF3', borderRadius: 16,
+        borderWidth: 1.5, borderColor: '#E8D5B7',
         marginBottom: 12, overflow: 'hidden',
     },
     categoriaSeccionTitulo: {
-        fontSize: 14, fontWeight: '700', color: '#1A0F08',
-        padding: 14, backgroundColor: '#FDF6EC',
-        borderBottomWidth: 1, borderBottomColor: '#E8D5C4',
+        fontSize: 14, fontWeight: '700', color: '#2D1200',
+        padding: 14, backgroundColor: '#FDF6EE',
+        borderBottomWidth: 1, borderBottomColor: '#E8D5B7',
     },
     menuItem: {
         flexDirection: 'row', alignItems: 'center', gap: 12,
-        padding: 14, borderBottomWidth: 1, borderBottomColor: '#F0E8E0',
+        padding: 14, borderBottomWidth: 1, borderBottomColor: '#F0E4D0',
     },
     menuItemEmoji: { fontSize: 22 },
     menuItemInfo: { flex: 1 },
-    menuItemNombre: { fontSize: 14, fontWeight: '600', color: '#1A0F08' },
-    menuItemPrecio: { fontSize: 13, color: '#E8210A', fontWeight: '700', marginTop: 2 },
+    menuItemNombre: { fontSize: 14, fontWeight: '600', color: '#2D1200' },
+    menuItemPrecio: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginTop: 2 },
     menuItemEliminar: {
         backgroundColor: '#FEE2E2', borderRadius: 8,
         width: 32, height: 32, justifyContent: 'center', alignItems: 'center',
     },
-    menuItemEliminarTexto: { color: '#E8210A', fontSize: 13, fontWeight: '800' },
+    menuItemEliminarTexto: { color: '#A85C00', fontSize: 13, fontWeight: '800' },
 
     vacioContainer: { alignItems: 'center', padding: 32 },
     vacioEmoji: { fontSize: 40, marginBottom: 12 },
-    vacioTexto: { fontSize: 16, fontWeight: '700', color: '#1A0F08', marginBottom: 6 },
-    vacioSub: { fontSize: 13, color: '#6B5E57', textAlign: 'center' },
+    vacioTexto: { fontSize: 16, fontWeight: '700', color: '#2D1200', marginBottom: 6 },
+    vacioSub: { fontSize: 13, color: '#7A5C3A', textAlign: 'center' },
 
     botonGuardar: {
-        backgroundColor: '#E8210A', borderRadius: 14,
+        backgroundColor: '#D4850A', borderRadius: 14,
         padding: 18, alignItems: 'center', marginTop: 8,
     },
     botonDeshabilitado: { opacity: 0.5 },

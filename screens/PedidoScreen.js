@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, StatusBar } from 'react-native';
 import { collection, addDoc, serverTimestamp, doc, getDoc, getCountFromServer, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 
@@ -49,7 +49,6 @@ export default function PedidoScreen({ route, navigation }) {
         }
         setCargando(true);
         try {
-            // Contar solo pedidos ACTIVOS (pendiente + listo) para número correlativo
             const qActivos = query(
                 collection(db, 'pedidos'),
                 where('pupuseria_id', '==', pupuseria.id),
@@ -93,7 +92,7 @@ export default function PedidoScreen({ route, navigation }) {
     if (cargandoMenu) {
         return (
             <View style={styles.centrado}>
-                <ActivityIndicator size="large" color="#E8210A" />
+                <ActivityIndicator size="large" color="#D4850A" />
                 <Text style={styles.cargandoTexto}>Cargando menú...</Text>
             </View>
         );
@@ -101,6 +100,8 @@ export default function PedidoScreen({ route, navigation }) {
 
     return (
         <ScrollView style={styles.container}>
+            <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.back}>← Regresar</Text>
@@ -217,53 +218,53 @@ export default function PedidoScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFF8F2' },
-    centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF8F2' },
-    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#6B5E57' },
+    container: { flex: 1, backgroundColor: '#FDF6EE' },
+    centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6EE' },
+    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#7A5C3A' },
 
-    header: { backgroundColor: '#E8210A', padding: 24, paddingTop: 48 },
-    back: { color: '#FFFFFF', fontSize: 14, marginBottom: 12, opacity: 0.85 },
-    titulo: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
-    subtitulo: { fontSize: 14, color: '#FFFFFF', opacity: 0.85 },
+    header: { backgroundColor: '#1C0A00', padding: 24, paddingTop: 48 },
+    back: { color: '#D4850A', fontSize: 14, marginBottom: 12, fontWeight: '700' },
+    titulo: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+    subtitulo: { fontSize: 14, color: '#B0956A' },
 
     seccion: {
-        fontSize: 16, fontWeight: '800', color: '#1A0F08',
+        fontSize: 16, fontWeight: '800', color: '#2D1200',
         padding: 20, paddingBottom: 8, paddingTop: 20,
-        borderBottomWidth: 1, borderBottomColor: '#E8D5C4',
+        borderBottomWidth: 1, borderBottomColor: '#E8D5B7',
     },
     fila: {
         flexDirection: 'row', alignItems: 'center', padding: 16, paddingHorizontal: 20,
-        backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 8,
-        borderRadius: 12, borderWidth: 1, borderColor: '#E8D5C4',
+        backgroundColor: '#FFFAF3', marginHorizontal: 16, marginTop: 8,
+        borderRadius: 12, borderWidth: 1, borderColor: '#E8D5B7',
     },
     tipoEmoji: { fontSize: 28, marginRight: 12 },
     tipoInfo: { flex: 1 },
-    tipoNombre: { fontSize: 15, fontWeight: '600', color: '#1A0F08' },
-    tipoPrecio: { fontSize: 13, color: '#E8210A', fontWeight: '700', marginTop: 2 },
+    tipoNombre: { fontSize: 15, fontWeight: '600', color: '#2D1200' },
+    tipoPrecio: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginTop: 2 },
 
     contador: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     btnContador: {
-        backgroundColor: '#E8210A', width: 32, height: 32,
+        backgroundColor: '#D4850A', width: 32, height: 32,
         borderRadius: 16, justifyContent: 'center', alignItems: 'center',
     },
     btnContadorTexto: { color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' },
-    cantidad: { fontSize: 18, fontWeight: 'bold', color: '#1A0F08', minWidth: 24, textAlign: 'center' },
+    cantidad: { fontSize: 18, fontWeight: 'bold', color: '#2D1200', minWidth: 24, textAlign: 'center' },
 
     footer: { padding: 24, gap: 12 },
     resumen: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16,
-        borderWidth: 1.5, borderColor: '#E8D5C4',
+        backgroundColor: '#FFFAF3', borderRadius: 12, padding: 16,
+        borderWidth: 1.5, borderColor: '#E8D5B7',
     },
-    resumenTexto: { fontSize: 15, fontWeight: '600', color: '#1A0F08' },
-    resumenPrecio: { fontSize: 20, fontWeight: '800', color: '#E8210A' },
+    resumenTexto: { fontSize: 15, fontWeight: '600', color: '#2D1200' },
+    resumenPrecio: { fontSize: 20, fontWeight: '800', color: '#D4850A' },
 
-    boton: { backgroundColor: '#E8210A', borderRadius: 12, padding: 16, alignItems: 'center' },
+    boton: { backgroundColor: '#D4850A', borderRadius: 12, padding: 16, alignItems: 'center' },
     botonDesactivado: { opacity: 0.6 },
-    botonTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+    botonTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 
     vacioCentro: { alignItems: 'center', marginTop: 60, padding: 24 },
     vacioEmoji: { fontSize: 48, marginBottom: 16 },
-    vacioTexto: { fontSize: 18, fontWeight: '800', color: '#1A0F08', marginBottom: 8 },
-    vacioSub: { fontSize: 14, color: '#6B5E57', textAlign: 'center', lineHeight: 20 },
+    vacioTexto: { fontSize: 18, fontWeight: '800', color: '#2D1200', marginBottom: 8 },
+    vacioSub: { fontSize: 14, color: '#7A5C3A', textAlign: 'center', lineHeight: 20 },
 });

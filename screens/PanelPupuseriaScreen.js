@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Alert
+  FlatList, ActivityIndicator, Alert, StatusBar
 } from 'react-native';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -239,7 +239,8 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
   if (cargando) {
     return (
       <View style={styles.centrado}>
-        <ActivityIndicator size="large" color="#E8210A" />
+        <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
+        <ActivityIndicator size="large" color="#D4850A" />
         <Text style={styles.cargandoTexto}>Cargando tu panel...</Text>
       </View>
     );
@@ -249,6 +250,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
 
       <View style={styles.header}>
         <View>
@@ -267,7 +269,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* Stats compactas en una sola línea horizontal */}
+      {/* Stats compactas */}
       <View style={styles.statsBar}>
         <View style={styles.statItem}>
           <Text style={styles.statNumero}>{totalHoy}</Text>
@@ -320,42 +322,42 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0A06' },
-  centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F0A06' },
-  cargandoTexto: { marginTop: 12, fontSize: 14, color: '#9A8A80' },
+  container: { flex: 1, backgroundColor: '#1C0A00' },
+  centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1C0A00' },
+  cargandoTexto: { marginTop: 12, fontSize: 14, color: '#B0956A' },
 
   header: {
-    backgroundColor: '#0F0A06',
+    backgroundColor: '#1C0A00',
     padding: 24,
     paddingTop: 56,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderBottomWidth: 1,
-    borderBottomColor: '#2A1F18',
+    borderBottomColor: '#3A2008',
   },
-  headerSub: { fontSize: 12, color: '#6B5E57', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
+  headerSub: { fontSize: 12, color: '#7A5C3A', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
   headerNombre: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
   headerDerecha: { alignItems: 'flex-end', gap: 8 },
-  headerBadge: { backgroundColor: '#E8210A', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
+  headerBadge: { backgroundColor: '#D4850A', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   headerBadgeTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  botonCerrarSesion: { borderWidth: 1, borderColor: '#3A2F28', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  botonCerrarSesionTexto: { color: '#6B5E57', fontSize: 12, fontWeight: '600' },
+  botonCerrarSesion: { borderWidth: 1, borderColor: '#3A2008', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  botonCerrarSesionTexto: { color: '#7A5C3A', fontSize: 12, fontWeight: '600' },
 
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: '#1A1008',
+    backgroundColor: '#140800',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A1F18',
+    borderBottomColor: '#3A2008',
     alignItems: 'center',
   },
   statItem: { flex: 1, alignItems: 'center' },
   statAccion: { flex: 1, alignItems: 'center' },
   statAccionTexto: { fontSize: 16 },
-  statNumero: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
-  statLabel: { fontSize: 9, color: '#6B5E57', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  statDivider: { width: 1, height: 28, backgroundColor: '#2A1F18' },
+  statNumero: { fontSize: 16, fontWeight: '800', color: '#D4850A' },
+  statLabel: { fontSize: 9, color: '#7A5C3A', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 28, backgroundColor: '#3A2008' },
 
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
@@ -369,11 +371,11 @@ const styles = StyleSheet.create({
   lista: { padding: 16, gap: 12 },
 
   tarjeta: {
-    backgroundColor: '#1A1008',
+    backgroundColor: '#2A1200',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#2A1F18',
+    borderColor: '#3A2008',
   },
   tarjetaLista: {
     borderColor: '#14532D',
@@ -389,21 +391,21 @@ const styles = StyleSheet.create({
   tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   numeroPedido: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
-  badgePendiente: { backgroundColor: '#2A1F00' },
+  badgePendiente: { backgroundColor: '#3A2800' },
   badgeListo: { backgroundColor: '#0A2A14' },
   badgeTexto: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  tiempoTexto: { fontSize: 11, color: '#6B5E57' },
+  tiempoTexto: { fontSize: 11, color: '#7A5C3A' },
 
   detalleBox: { marginBottom: 14, gap: 6 },
   detalleFila: { flexDirection: 'row', gap: 8 },
-  detalleLinea: { flex: 1, fontSize: 13, color: '#C4B5AC' },
+  detalleLinea: { flex: 1, fontSize: 13, color: '#C4A882' },
 
   tarjetaFooter: { gap: 10 },
-  totalItems: { fontSize: 14, color: '#9A8A80', fontWeight: '600' },
-  totalPrecio: { fontSize: 14, color: '#E8210A', fontWeight: '800' },
+  totalItems: { fontSize: 14, color: '#B0956A', fontWeight: '600' },
+  totalPrecio: { fontSize: 14, color: '#D4850A', fontWeight: '800' },
 
   botonListo: {
-    backgroundColor: '#E8210A',
+    backgroundColor: '#D4850A',
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
@@ -421,5 +423,5 @@ const styles = StyleSheet.create({
   vacioCentro: { alignItems: 'center', marginTop: 60 },
   vacioEmoji: { fontSize: 48, marginBottom: 16 },
   vacioTexto: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
-  vacioSub: { fontSize: 14, color: '#6B5E57', textAlign: 'center', lineHeight: 20 },
+  vacioSub: { fontSize: 14, color: '#7A5C3A', textAlign: 'center', lineHeight: 20 },
 });

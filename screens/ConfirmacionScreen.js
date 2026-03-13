@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, SafeAreaView, StatusBar } from 'react-native';
 
 export default function ConfirmacionScreen({ route, navigation }) {
     const { pupuseria, total, totalPrecio, numeroPedido } = route.params;
@@ -18,6 +18,7 @@ export default function ConfirmacionScreen({ route, navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
 
             {/* Ícono + títulos */}
             <View style={styles.topSection}>
@@ -82,7 +83,7 @@ export default function ConfirmacionScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFF8F2',
+        backgroundColor: '#FDF6EE',
         paddingHorizontal: 20,
         paddingTop: 40,
         paddingBottom: 24,
@@ -100,19 +101,19 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     icono: { fontSize: 38 },
-    titulo: { fontSize: 24, fontWeight: '800', color: '#1A0F08', marginBottom: 6 },
-    subtitulo: { fontSize: 14, color: '#6B5E57', textAlign: 'center' },
-    subtituloNombre: { fontWeight: '800', color: '#1A0F08' },
+    titulo: { fontSize: 24, fontWeight: '800', color: '#2D1200', marginBottom: 6 },
+    subtitulo: { fontSize: 14, color: '#7A5C3A', textAlign: 'center' },
+    subtituloNombre: { fontWeight: '800', color: '#2D1200' },
 
     tarjetaPedido: {
-        backgroundColor: '#1A0F08',
+        backgroundColor: '#1C0A00',
         borderRadius: 18,
         padding: 18,
         alignItems: 'center',
     },
     tarjetaPedidoLabel: {
         fontSize: 11,
-        color: '#9A8A80',
+        color: '#B0956A',
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: 6,
@@ -120,13 +121,13 @@ const styles = StyleSheet.create({
     tarjetaPedidoNumero: {
         fontSize: 56,
         fontWeight: '800',
-        color: '#E8780A',
+        color: '#D4850A',
         letterSpacing: 2,
         marginBottom: 12,
     },
     tarjetaPedidoDivider: {
         height: 1,
-        backgroundColor: '#2A1F18',
+        backgroundColor: '#2A1A08',
         width: '100%',
         marginBottom: 10,
     },
@@ -134,14 +135,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 20,
     },
-    tarjetaPedidoSub: { fontSize: 12, color: '#9A8A80' },
+    tarjetaPedidoSub: { fontSize: 12, color: '#B0956A' },
 
     tarjetaResumen: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FFFAF3',
         borderRadius: 14,
         padding: 16,
         borderWidth: 1.5,
-        borderColor: '#E8D5C4',
+        borderColor: '#E8D5B7',
     },
     resumenFila: {
         flexDirection: 'row',
@@ -149,10 +150,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
     },
-    resumenLabel: { fontSize: 13, color: '#6B5E57' },
-    resumenValor: { fontSize: 13, fontWeight: '600', color: '#1A0F08', flex: 1, textAlign: 'right' },
-    resumenTotal: { fontSize: 15, fontWeight: '800', color: '#E8210A' },
-    resumenSeparador: { height: 1, backgroundColor: '#E8D5C4' },
+    resumenLabel: { fontSize: 13, color: '#7A5C3A' },
+    resumenValor: { fontSize: 13, fontWeight: '600', color: '#2D1200', flex: 1, textAlign: 'right' },
+    resumenTotal: { fontSize: 15, fontWeight: '800', color: '#D4850A' },
+    resumenSeparador: { height: 1, backgroundColor: '#E8D5B7' },
 
     bottomSection: { gap: 12 },
     avisoBox: {
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     avisoTexto: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 18 },
 
     botonVolver: {
-        backgroundColor: '#E8210A',
+        backgroundColor: '#D4850A',
         borderRadius: 14,
         padding: 16,
         alignItems: 'center',

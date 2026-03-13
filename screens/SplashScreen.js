@@ -1,4 +1,4 @@
-import { View, Image, StyleSheet, Animated, Text } from 'react-native';
+import { View, Image, StyleSheet, Animated, Text, StatusBar } from 'react-native';
 import { useEffect, useRef } from 'react';
 
 export default function SplashScreen() {
@@ -23,6 +23,7 @@ export default function SplashScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
             <Animated.View style={[styles.contenido, {
                 transform: [{ scale: scaleAnim }],
                 opacity: opacityAnim,
@@ -33,8 +34,8 @@ export default function SplashScreen() {
                     resizeMode="contain"
                 />
                 <Text style={styles.nombre}>
-                    <Text style={styles.nombreNegro}>TuPupuseria</Text>
-                    <Text style={styles.nombreRojo}>App</Text>
+                    <Text style={styles.nombreOscuro}>TuPupuseria</Text>
+                    <Text style={styles.nombreDorado}>App</Text>
                 </Text>
             </Animated.View>
         </View>
@@ -44,9 +45,14 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FDF6EE',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
     },
     contenido: {
         alignItems: 'center',
@@ -60,12 +66,12 @@ const styles = StyleSheet.create({
         letterSpacing: -0.5,
         marginTop: 8,
     },
-    nombreNegro: {
-        color: '#1A0F08',
+    nombreOscuro: {
+        color: '#2D1200',
         fontWeight: '900',
     },
-    nombreRojo: {
-        color: '#E8210A',
+    nombreDorado: {
+        color: '#D4850A',
         fontWeight: '900',
     },
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -93,7 +93,15 @@ export default function AppNavigator() {
 
     if (mostrarSplash || usuario === undefined || verificando) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#FDF6EE',
+                position: 'absolute',
+                top: 0, bottom: 0, left: 0, right: 0
+            }}>
+                <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
                 <SplashScreen />
             </View>
         );
@@ -101,6 +109,7 @@ export default function AppNavigator() {
 
     return (
         <NavigationContainer>
+            <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {usuario ? (
                     <>

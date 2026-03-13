@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, StatusBar } from 'react-native';
 import { collection, query, where, getDocsFromServer } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 
@@ -18,10 +18,8 @@ export default function MiSaldoScreen({ navigation }) {
                 where('dueno_uid', '==', auth.currentUser.uid)
             );
             const snapshot = await getDocsFromServer(q);
-
             if (!snapshot.empty) {
-                const datos = snapshot.docs[0].data();
-                setSuscripcion(datos);
+                setSuscripcion(snapshot.docs[0].data());
             }
         } catch (error) {
             Alert.alert('Error', 'No se pudo cargar la información de suscripción.');
@@ -33,16 +31,13 @@ export default function MiSaldoScreen({ navigation }) {
         const hoy = new Date();
         const vencimiento = fechaVencimiento.toDate();
         const diferencia = vencimiento - hoy;
-        const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
-        return dias;
+        return Math.ceil(diferencia / (1000 * 60 * 60 * 24));
     };
 
     const formatearFecha = (timestamp) => {
         const fecha = timestamp.toDate();
         return fecha.toLocaleDateString('es-SV', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
+            day: '2-digit', month: 'long', year: 'numeric'
         });
     };
 
@@ -57,7 +52,8 @@ export default function MiSaldoScreen({ navigation }) {
     if (cargando) {
         return (
             <View style={styles.centrado}>
-                <ActivityIndicator size="large" color="#E8210A" />
+                <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
+                <ActivityIndicator size="large" color="#D4850A" />
                 <Text style={styles.cargandoTexto}>Cargando tu saldo...</Text>
             </View>
         );
@@ -66,6 +62,7 @@ export default function MiSaldoScreen({ navigation }) {
     if (!suscripcion) {
         return (
             <View style={styles.centrado}>
+                <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
                 <Text style={styles.vacioEmoji}>⚠️</Text>
                 <Text style={styles.vacioTexto}>No se encontró suscripción</Text>
             </View>
@@ -78,6 +75,7 @@ export default function MiSaldoScreen({ navigation }) {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botonRegresar}>
@@ -101,7 +99,7 @@ export default function MiSaldoScreen({ navigation }) {
                 )}
             </View>
 
-            {/* Aviso si quedan 5 días o menos */}
+            {/* Aviso crítico */}
             {esCritico && (
                 <View style={styles.tarjetaAviso}>
                     <Text style={styles.avisoTexto}>
@@ -110,49 +108,40 @@ export default function MiSaldoScreen({ navigation }) {
                 </View>
             )}
 
-            {/* Detalle de la suscripción */}
+            {/* Detalle */}
             <View style={styles.tarjeta}>
                 <Text style={styles.tarjetaTitulo}>Detalle de suscripción</Text>
 
                 <View style={styles.fila}>
                     <Text style={styles.filaLabel}>Estado</Text>
-                    <Text style={[styles.filaValor, estaVigente ? styles.colorVerde : styles.colorRojo]}>
+                    <Text style={[styles.filaValor, estaVigente ? styles.colorVerde : styles.colorDorado]}>
                         {estaVigente ? 'Activa' : 'Vencida'}
                     </Text>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaLabel}>Tipo</Text>
                     <Text style={styles.filaValor}>
                         {suscripcion.es_trial ? 'Período de prueba' : 'Mensualidad'}
                     </Text>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaLabel}>Inicio</Text>
                     <Text style={styles.filaValor}>{formatearFecha(suscripcion.fecha_inicio)}</Text>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaLabel}>Vencimiento</Text>
                     <Text style={styles.filaValor}>{formatearFecha(suscripcion.fecha_vencimiento)}</Text>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaLabel}>Mensualidad</Text>
                     <Text style={styles.filaValor}>$1.00 / mes</Text>
                 </View>
             </View>
 
-            {/* Botón renovar */}
             <TouchableOpacity style={styles.botonRenovar} onPress={solicitarRenovacion}>
                 <Text style={styles.botonRenovarTexto}>Renovar suscripción</Text>
             </TouchableOpacity>
@@ -162,40 +151,27 @@ export default function MiSaldoScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flexGrow: 1,
-        backgroundColor: '#FFF8F2',
-        paddingBottom: 40,
-    },
-    centrado: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FFF8F2',
-    },
-    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#6B5E57' },
+    container: { flexGrow: 1, backgroundColor: '#FDF6EE', paddingBottom: 40 },
+    centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6EE' },
+    cargandoTexto: { marginTop: 12, fontSize: 14, color: '#7A5C3A' },
     vacioEmoji: { fontSize: 40, marginBottom: 12 },
-    vacioTexto: { fontSize: 16, color: '#6B5E57' },
+    vacioTexto: { fontSize: 16, color: '#7A5C3A' },
 
     header: {
-        backgroundColor: '#1A0F08',
+        backgroundColor: '#1C0A00',
         paddingTop: 56,
         paddingBottom: 24,
         paddingHorizontal: 24,
     },
     botonRegresar: {
-        backgroundColor: '#FDF6EC',
+        backgroundColor: '#D4850A',
         alignSelf: 'flex-start',
         borderRadius: 10,
         paddingHorizontal: 16,
         paddingVertical: 8,
         marginBottom: 16,
     },
-    botonRegresarTexto: {
-        color: '#1A0F08',
-        fontSize: 14,
-        fontWeight: '700',
-    },
+    botonRegresarTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
     headerTitulo: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
 
     tarjetaEstado: {
@@ -207,50 +183,37 @@ const styles = StyleSheet.create({
     tarjetaVigente: { backgroundColor: '#F0FDF4', borderWidth: 1.5, borderColor: '#BBF7D0' },
     tarjetaVencida: { backgroundColor: '#FEF2F2', borderWidth: 1.5, borderColor: '#FECACA' },
     estadoIcono: { fontSize: 40, marginBottom: 10 },
-    estadoTitulo: { fontSize: 18, fontWeight: '800', color: '#1A0F08', marginBottom: 6 },
-    estadoDias: { fontSize: 15, color: '#6B5E57' },
+    estadoTitulo: { fontSize: 18, fontWeight: '800', color: '#2D1200', marginBottom: 6 },
+    estadoDias: { fontSize: 15, color: '#7A5C3A' },
 
     tarjetaAviso: {
-        marginHorizontal: 20,
-        marginBottom: 16,
-        backgroundColor: '#FEF9C3',
-        borderRadius: 12,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#FDE68A',
+        marginHorizontal: 20, marginBottom: 16,
+        backgroundColor: '#FEF9C3', borderRadius: 12,
+        padding: 16, borderWidth: 1, borderColor: '#FDE68A',
     },
     avisoTexto: { fontSize: 13, color: '#92400E', lineHeight: 20 },
 
     tarjeta: {
-        marginHorizontal: 20,
-        marginBottom: 20,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 20,
-        borderWidth: 1.5,
-        borderColor: '#E8D5C4',
+        marginHorizontal: 20, marginBottom: 20,
+        backgroundColor: '#FFFAF3', borderRadius: 16,
+        padding: 20, borderWidth: 1.5, borderColor: '#E8D5B7',
     },
-    tarjetaTitulo: { fontSize: 15, fontWeight: '700', color: '#1A0F08', marginBottom: 16 },
+    tarjetaTitulo: { fontSize: 15, fontWeight: '700', color: '#2D1200', marginBottom: 16 },
 
     fila: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 10,
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', paddingVertical: 10,
     },
-    filaLabel: { fontSize: 14, color: '#6B5E57' },
-    filaValor: { fontSize: 14, fontWeight: '600', color: '#1A0F08' },
+    filaLabel: { fontSize: 14, color: '#7A5C3A' },
+    filaValor: { fontSize: 14, fontWeight: '600', color: '#2D1200' },
     colorVerde: { color: '#16A34A' },
-    colorRojo: { color: '#E8210A' },
+    colorDorado: { color: '#D4850A' },
 
-    separador: { height: 1, backgroundColor: '#E8D5C4' },
+    separador: { height: 1, backgroundColor: '#E8D5B7' },
 
     botonRenovar: {
-        backgroundColor: '#E8210A',
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 20,
-        alignItems: 'center',
+        backgroundColor: '#D4850A', borderRadius: 12,
+        padding: 16, marginHorizontal: 20, alignItems: 'center',
     },
-    botonRenovarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+    botonRenovarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 });

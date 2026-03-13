@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
@@ -22,6 +22,7 @@ export default function SuscripcionVencidaScreen() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
 
             <View style={styles.iconoContainer}>
                 <Text style={styles.icono}>🔒</Text>
@@ -42,9 +43,7 @@ export default function SuscripcionVencidaScreen() {
                         <Text style={styles.filaSub}>$1.00 al mes por tu pupusería</Text>
                     </View>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaIcono}>📲</Text>
                     <View style={styles.filaTexto}>
@@ -52,9 +51,7 @@ export default function SuscripcionVencidaScreen() {
                         <Text style={styles.filaSub}>Usan la app completamente gratis</Text>
                     </View>
                 </View>
-
                 <View style={styles.separador} />
-
                 <View style={styles.fila}>
                     <Text style={styles.filaIcono}>✅</Text>
                     <View style={styles.filaTexto}>
@@ -84,119 +81,47 @@ export default function SuscripcionVencidaScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flexGrow: 1,
-        backgroundColor: '#FFF8F2',
-        padding: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexGrow: 1, backgroundColor: '#FDF6EE',
+        padding: 24, alignItems: 'center', justifyContent: 'center',
     },
     iconoContainer: {
-        backgroundColor: '#FEE2E2',
-        borderRadius: 60,
-        width: 100,
-        height: 100,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
+        backgroundColor: '#FEF3E2', borderRadius: 60,
+        width: 100, height: 100,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 24,
     },
-    icono: {
-        fontSize: 48,
-    },
-    titulo: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: '#1A0F08',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    subtitulo: {
-        fontSize: 15,
-        color: '#6B5E57',
-        textAlign: 'center',
-        marginBottom: 28,
-        lineHeight: 22,
-    },
+    icono: { fontSize: 48 },
+    titulo: { fontSize: 26, fontWeight: '900', color: '#2D1200', marginBottom: 10, textAlign: 'center' },
+    subtitulo: { fontSize: 15, color: '#7A5C3A', textAlign: 'center', marginBottom: 28, lineHeight: 22 },
+
     tarjeta: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 20,
-        width: '100%',
-        borderWidth: 1.5,
-        borderColor: '#E8D5C4',
-        marginBottom: 16,
+        backgroundColor: '#FFFAF3', borderRadius: 16,
+        padding: 20, width: '100%',
+        borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 16,
     },
-    tarjetaTitulo: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1A0F08',
-        marginBottom: 16,
-    },
-    fila: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    filaIcono: {
-        fontSize: 24,
-        marginRight: 14,
-    },
-    filaTexto: {
-        flex: 1,
-    },
-    filaTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1A0F08',
-    },
-    filaSub: {
-        fontSize: 13,
-        color: '#6B5E57',
-        marginTop: 2,
-    },
-    separador: {
-        height: 1,
-        backgroundColor: '#E8D5C4',
-        marginVertical: 4,
-    },
+    tarjetaTitulo: { fontSize: 16, fontWeight: '700', color: '#2D1200', marginBottom: 16 },
+    fila: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    filaIcono: { fontSize: 24, marginRight: 14 },
+    filaTexto: { flex: 1 },
+    filaTitle: { fontSize: 14, fontWeight: '600', color: '#2D1200' },
+    filaSub: { fontSize: 13, color: '#7A5C3A', marginTop: 2 },
+    separador: { height: 1, backgroundColor: '#E8D5B7', marginVertical: 4 },
+
     tarjetaAviso: {
-        backgroundColor: '#FEF9C3',
-        borderRadius: 12,
-        padding: 16,
-        width: '100%',
-        marginBottom: 28,
-        borderWidth: 1,
-        borderColor: '#FDE68A',
+        backgroundColor: '#FEF9C3', borderRadius: 12,
+        padding: 16, width: '100%', marginBottom: 28,
+        borderWidth: 1, borderColor: '#FDE68A',
     },
-    avisoTexto: {
-        fontSize: 13,
-        color: '#92400E',
-        lineHeight: 20,
-        textAlign: 'center',
-    },
+    avisoTexto: { fontSize: 13, color: '#92400E', lineHeight: 20, textAlign: 'center' },
+
     botonRenovar: {
-        backgroundColor: '#E8210A',
-        borderRadius: 12,
-        padding: 16,
-        width: '100%',
-        alignItems: 'center',
-        marginBottom: 12,
+        backgroundColor: '#D4850A', borderRadius: 12,
+        padding: 16, width: '100%', alignItems: 'center', marginBottom: 12,
     },
-    botonRenovarTexto: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    botonRenovarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+
     botonSalir: {
-        borderRadius: 12,
-        padding: 16,
-        width: '100%',
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: '#E8D5C4',
+        borderRadius: 12, padding: 16, width: '100%',
+        alignItems: 'center', borderWidth: 1.5, borderColor: '#E8D5B7',
     },
-    botonSalirTexto: {
-        color: '#6B5E57',
-        fontSize: 15,
-        fontWeight: '600',
-    },
+    botonSalirTexto: { color: '#7A5C3A', fontSize: 15, fontWeight: '600' },
 });
