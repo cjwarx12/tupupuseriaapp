@@ -15,6 +15,11 @@ const CATEGORIAS = [
   { id: 'otro', nombre: 'Otro', emoji: '🍽️' },
 ];
 
+const MASAS = [
+  { id: 'maiz', nombre: 'Maíz', emoji: '🌽' },
+  { id: 'arroz', nombre: 'Arroz', emoji: '🍚' },
+];
+
 const EMOJIS_PUPUSA = [
   { palabras: ['queso'], emoji: '🧀' },
   { palabras: ['frijol', 'frijoles'], emoji: '🫘' },
@@ -54,6 +59,7 @@ export default function RegistroPupuseriaScreen({ navigation }) {
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoPrecio, setNuevoPrecio] = useState('');
   const [nuevaCategoria, setNuevaCategoria] = useState('pupusa');
+  const [nuevaMasa, setNuevaMasa] = useState('maiz');
 
   useEffect(() => { capturarGPS(); }, []);
 
@@ -81,6 +87,7 @@ export default function RegistroPupuseriaScreen({ navigation }) {
       id: Date.now().toString(),
       nombre: nuevoNombre.trim(),
       categoria: nuevaCategoria,
+      masa: nuevaCategoria === 'pupusa' ? nuevaMasa : null,
       emoji: obtenerEmoji(nuevaCategoria, nuevoNombre.trim()),
       precio: parseFloat(parseFloat(nuevoPrecio).toFixed(2)),
     };
@@ -88,6 +95,7 @@ export default function RegistroPupuseriaScreen({ navigation }) {
     setNuevoNombre('');
     setNuevoPrecio('');
     setNuevaCategoria('pupusa');
+    setNuevaMasa('maiz');
   };
 
   const eliminarItem = (id) => {
@@ -95,7 +103,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
   };
 
   const registrar = async () => {
-    // ── Validaciones básicas ──────────────────────────────
     if (!nombre.trim()) { Alert.alert('Error', 'Ingresa el nombre de tu pupusería.'); return; }
     if (!direccion.trim()) { Alert.alert('Error', 'Ingresa la dirección.'); return; }
     if (!telefono.trim() || telefono.length < 8) { Alert.alert('Error', 'Ingresa un teléfono válido de 8 dígitos.'); return; }
@@ -109,35 +116,24 @@ export default function RegistroPupuseriaScreen({ navigation }) {
     setCargandoGuardar(true);
 
     try {
-      // ── FIX 1: Verificar nombre de pupusería duplicado ──
-      const qNombre = query(
-        collection(db, 'pupuserias'),
-        where('nombre', '==', nombre.trim())
-      );
+      // FIX 1: Verificar nombre duplicado
+      const qNombre = query(collection(db, 'pupuserias'), where('nombre', '==', nombre.trim()));
       const snapshotNombre = await getDocs(qNombre);
       if (!snapshotNombre.empty) {
-        Alert.alert(
-          'Nombre no disponible',
-          `Ya existe una pupusería llamada "${nombre.trim()}". Por favor elige un nombre diferente.`
-        );
+        Alert.alert('Nombre no disponible', `Ya existe una pupusería llamada "${nombre.trim()}". Por favor elige un nombre diferente.`);
         setCargandoGuardar(false);
         return;
       }
 
-      // ── FIX 2: Verificar que el teléfono no tenga ya una pupusería ──
-      // (Se detecta automáticamente por Auth con auth/email-already-in-use,
-      // pero también verificamos si ya tiene pupusería en Firestore)
-
-      // ── Crear cuenta Auth ──────────────────────────────
+      // Crear cuenta Auth
       const correo = telefonoACorreo(telefono);
       const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
       const uid = credencial.user.uid;
 
-      // ── FIX 3: Registro con rollback completo ──────────
       let docPupuseriaId = null;
 
       try {
-        // Paso 1 — Crear documento pupusería
+        // Paso 1 — Crear pupusería
         const docRef = await addDoc(collection(db, 'pupuserias'), {
           nombre: nombre.trim(),
           direccion: direccion.trim(),
@@ -166,25 +162,14 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           meses_acumulados: 1,
         });
 
-        // ✅ Todo salió bien — Auth redirige automáticamente al panel
-
       } catch (errorFirestore) {
-        // ── ROLLBACK: si Firestore falla, limpiamos todo ──
-        console.log('Error en Firestore, haciendo rollback...', errorFirestore);
-
-        // Eliminar documento de pupusería si se creó
+        // ROLLBACK
+        console.log('Error Firestore, rollback...', errorFirestore);
         if (docPupuseriaId) {
           try { await deleteDoc(doc(db, 'pupuserias', docPupuseriaId)); } catch (e) { }
         }
-
-        // Eliminar cuenta Auth recién creada
         try { await deleteUser(credencial.user); } catch (e) { }
-
-        Alert.alert(
-          'Error al registrar',
-          'Hubo un problema guardando tus datos. Por favor intenta de nuevo.',
-          [{ text: 'Intentar de nuevo' }]
-        );
+        Alert.alert('Error al registrar', 'Hubo un problema guardando tus datos. Por favor intenta de nuevo.');
       }
 
     } catch (error) {
@@ -197,6 +182,11 @@ export default function RegistroPupuseriaScreen({ navigation }) {
 
     setCargandoGuardar(false);
   };
+
+  const pupusasMaiz = menuItems.filter(i => i.categoria === 'pupusa' && (i.masa === 'maiz' || !i.masa));
+  const pupusasArroz = menuItems.filter(i => i.categoria === 'pupusa' && i.masa === 'arroz');
+  const refrescos = menuItems.filter(i => i.categoria === 'refresco');
+  const otros = menuItems.filter(i => i.categoria === 'otro');
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -233,57 +223,32 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           )}
         </View>
 
-        {/* Datos del negocio */}
+        {/* Negocio */}
         <Text style={styles.seccionTitulo}>📍 Tu negocio</Text>
-
         <View style={styles.grupo}>
           <Text style={styles.label}>Nombre de la pupusería</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Pupusería La Bendición"
-            placeholderTextColor="#B0956A"
-            value={nombre}
-            onChangeText={setNombre}
-          />
+          <TextInput style={styles.input} placeholder="Ej: Pupusería La Bendición"
+            placeholderTextColor="#B0956A" value={nombre} onChangeText={setNombre} />
         </View>
-
         <View style={styles.grupo}>
           <Text style={styles.label}>Dirección</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Col. El Paraíso, San Salvador"
-            placeholderTextColor="#B0956A"
-            value={direccion}
-            onChangeText={setDireccion}
-          />
+          <TextInput style={styles.input} placeholder="Ej: Col. El Paraíso, San Salvador"
+            placeholderTextColor="#B0956A" value={direccion} onChangeText={setDireccion} />
         </View>
 
         {/* Cuenta */}
         <Text style={styles.seccionTitulo}>🔐 Tu cuenta</Text>
-
         <View style={styles.grupo}>
           <Text style={styles.label}>Teléfono (será tu usuario)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: 22224444"
-            placeholderTextColor="#B0956A"
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-            maxLength={8}
-          />
+          <TextInput style={styles.input} placeholder="Ej: 22224444"
+            placeholderTextColor="#B0956A" value={telefono} onChangeText={setTelefono}
+            keyboardType="phone-pad" maxLength={8} />
         </View>
-
         <View style={styles.grupo}>
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor="#B0956A"
-            value={contrasena}
-            onChangeText={setContrasena}
-            secureTextEntry
-          />
+          <TextInput style={styles.input} placeholder="Mínimo 6 caracteres"
+            placeholderTextColor="#B0956A" value={contrasena} onChangeText={setContrasena}
+            secureTextEntry />
         </View>
 
         {/* Menú */}
@@ -291,38 +256,15 @@ export default function RegistroPupuseriaScreen({ navigation }) {
         <Text style={styles.seccionSub}>Agrega los productos que vendes. Puedes editarlo después.</Text>
 
         <View style={styles.menuFormulario}>
-          <View style={styles.grupo}>
-            <Text style={styles.label}>Nombre del producto</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Pupusa de queso"
-              placeholderTextColor="#B0956A"
-              value={nuevoNombre}
-              onChangeText={setNuevoNombre}
-            />
-          </View>
 
-          <View style={styles.grupo}>
-            <Text style={styles.label}>Precio ($)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: 0.50"
-              placeholderTextColor="#B0956A"
-              value={nuevoPrecio}
-              onChangeText={setNuevoPrecio}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
+          {/* Categoría */}
           <View style={styles.grupo}>
             <Text style={styles.label}>Categoría</Text>
             <View style={styles.categorias}>
               {CATEGORIAS.map(cat => (
-                <TouchableOpacity
-                  key={cat.id}
+                <TouchableOpacity key={cat.id}
                   style={[styles.categoriaBtn, nuevaCategoria === cat.id && styles.categoriaBtnActivo]}
-                  onPress={() => setNuevaCategoria(cat.id)}
-                >
+                  onPress={() => setNuevaCategoria(cat.id)}>
                   <Text style={styles.categoriaEmoji}>{cat.emoji}</Text>
                   <Text style={[styles.categoriaTexto, nuevaCategoria === cat.id && styles.categoriaTextoActivo]}>
                     {cat.nombre}
@@ -332,10 +274,47 @@ export default function RegistroPupuseriaScreen({ navigation }) {
             </View>
           </View>
 
+          {/* Masa — solo si es pupusa */}
+          {nuevaCategoria === 'pupusa' && (
+            <View style={styles.grupo}>
+              <Text style={styles.label}>Masa</Text>
+              <View style={styles.categorias}>
+                {MASAS.map(masa => (
+                  <TouchableOpacity key={masa.id}
+                    style={[styles.categoriaBtn, nuevaMasa === masa.id && styles.masaBtnActivo]}
+                    onPress={() => setNuevaMasa(masa.id)}>
+                    <Text style={styles.categoriaEmoji}>{masa.emoji}</Text>
+                    <Text style={[styles.categoriaTexto, nuevaMasa === masa.id && styles.masaTextoActivo]}>
+                      {masa.nombre}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Nombre */}
+          <View style={styles.grupo}>
+            <Text style={styles.label}>Nombre del producto</Text>
+            <TextInput style={styles.input} placeholder="Ej: Pupusa de queso"
+              placeholderTextColor="#B0956A" value={nuevoNombre} onChangeText={setNuevoNombre} />
+          </View>
+
+          {/* Precio */}
+          <View style={styles.grupo}>
+            <Text style={styles.label}>Precio ($)</Text>
+            <TextInput style={styles.input} placeholder="Ej: 0.50"
+              placeholderTextColor="#B0956A" value={nuevoPrecio} onChangeText={setNuevoPrecio}
+              keyboardType="decimal-pad" />
+          </View>
+
+          {/* Preview */}
           {nuevoNombre.trim().length > 0 && nuevaCategoria === 'pupusa' && (
             <View style={styles.previewEmoji}>
               <Text style={styles.previewEmojiIcono}>{obtenerEmoji(nuevaCategoria, nuevoNombre)}</Text>
-              <Text style={styles.previewEmojiTexto}>Así se verá tu producto</Text>
+              <Text style={styles.previewEmojiTexto}>
+                Pupusa de {nuevaMasa === 'maiz' ? 'maíz 🌽' : 'arroz 🍚'}
+              </Text>
             </View>
           )}
 
@@ -344,23 +323,82 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Lista del menú */}
         {menuItems.length > 0 && (
           <View style={styles.menuLista}>
             <Text style={styles.menuListaTitulo}>Tu menú ({menuItems.length} productos)</Text>
-            {menuItems.map(item => (
-              <View key={item.id} style={styles.menuItem}>
-                <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
-                <View style={styles.menuItemInfo}>
-                  <Text style={styles.menuItemNombre}>{item.nombre}</Text>
-                  <Text style={styles.menuItemCategoria}>
-                    {CATEGORIAS.find(c => c.id === item.categoria)?.nombre} · ${item.precio.toFixed(2)}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
-                  <Text style={styles.menuItemEliminarTexto}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+
+            {pupusasMaiz.length > 0 && (
+              <>
+                <Text style={styles.menuSubtitulo}>🌽 Pupusas de Maíz</Text>
+                {pupusasMaiz.map(item => (
+                  <View key={item.id} style={styles.menuItem}>
+                    <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+                    <View style={styles.menuItemInfo}>
+                      <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                      <Text style={styles.menuItemCategoria}>${item.precio.toFixed(2)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                      <Text style={styles.menuItemEliminarTexto}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {pupusasArroz.length > 0 && (
+              <>
+                <Text style={styles.menuSubtitulo}>🍚 Pupusas de Arroz</Text>
+                {pupusasArroz.map(item => (
+                  <View key={item.id} style={styles.menuItem}>
+                    <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+                    <View style={styles.menuItemInfo}>
+                      <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                      <Text style={styles.menuItemCategoria}>${item.precio.toFixed(2)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                      <Text style={styles.menuItemEliminarTexto}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {refrescos.length > 0 && (
+              <>
+                <Text style={styles.menuSubtitulo}>🥤 Refrescos</Text>
+                {refrescos.map(item => (
+                  <View key={item.id} style={styles.menuItem}>
+                    <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+                    <View style={styles.menuItemInfo}>
+                      <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                      <Text style={styles.menuItemCategoria}>${item.precio.toFixed(2)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                      <Text style={styles.menuItemEliminarTexto}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {otros.length > 0 && (
+              <>
+                <Text style={styles.menuSubtitulo}>🍽️ Otros</Text>
+                {otros.map(item => (
+                  <View key={item.id} style={styles.menuItem}>
+                    <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+                    <View style={styles.menuItemInfo}>
+                      <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                      <Text style={styles.menuItemCategoria}>${item.precio.toFixed(2)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                      <Text style={styles.menuItemEliminarTexto}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
           </View>
         )}
 
@@ -388,16 +426,10 @@ const styles = StyleSheet.create({
   botonRegresar: { marginBottom: 24 },
   botonRegresarTexto: { fontSize: 15, color: '#D4850A', fontWeight: '700' },
 
-  titulo: {
-    fontSize: 32, fontWeight: '800', color: '#2D1200',
-    letterSpacing: -0.5, marginBottom: 10, lineHeight: 38,
-  },
+  titulo: { fontSize: 32, fontWeight: '800', color: '#2D1200', letterSpacing: -0.5, marginBottom: 10, lineHeight: 38 },
   subtitulo: { fontSize: 14, color: '#7A5C3A', marginBottom: 24, lineHeight: 20 },
 
-  gpsIndicador: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderRadius: 12, padding: 14, marginBottom: 28,
-  },
+  gpsIndicador: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, padding: 14, marginBottom: 28 },
   gpsCargando: { backgroundColor: '#FDF6EE', borderWidth: 1.5, borderColor: '#E8D5B7' },
   gpsOk: { backgroundColor: '#F0FDF4', borderWidth: 1.5, borderColor: '#BBF7D0' },
   gpsIndicadorEmoji: { fontSize: 16 },
@@ -406,37 +438,26 @@ const styles = StyleSheet.create({
   gpsIndicadorTextoError: { fontSize: 13, color: '#D4850A', fontWeight: '600' },
   gpsReintentar: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginLeft: 8 },
 
-  seccionTitulo: {
-    fontSize: 16, fontWeight: '800', color: '#2D1200',
-    marginBottom: 6, marginTop: 8,
-  },
+  seccionTitulo: { fontSize: 16, fontWeight: '800', color: '#2D1200', marginBottom: 6, marginTop: 8 },
   seccionSub: { fontSize: 13, color: '#7A5C3A', marginBottom: 16, lineHeight: 18 },
 
   grupo: { marginBottom: 16 },
-  label: {
-    fontSize: 13, fontWeight: '600', color: '#2D1200',
-    marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: '#FFFAF3', borderWidth: 1.5, borderColor: '#E8D5B7',
-    borderRadius: 12, padding: 14, fontSize: 15, color: '#2D1200',
-  },
+  label: { fontSize: 13, fontWeight: '600', color: '#2D1200', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { backgroundColor: '#FFFAF3', borderWidth: 1.5, borderColor: '#E8D5B7', borderRadius: 12, padding: 14, fontSize: 15, color: '#2D1200' },
 
-  menuFormulario: {
-    backgroundColor: '#FFFAF3', borderRadius: 16,
-    padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 16,
-  },
+  menuFormulario: { backgroundColor: '#FFFAF3', borderRadius: 16, padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 16 },
 
   categorias: { flexDirection: 'row', gap: 10 },
   categoriaBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, borderRadius: 10, padding: 10,
-    borderWidth: 1.5, borderColor: '#E8D5B7', backgroundColor: '#FDF6EE',
+    gap: 6, borderRadius: 10, padding: 10, borderWidth: 1.5, borderColor: '#E8D5B7', backgroundColor: '#FDF6EE',
   },
   categoriaBtnActivo: { borderColor: '#D4850A', backgroundColor: '#FEF3E2' },
+  masaBtnActivo: { borderColor: '#2D7A3A', backgroundColor: '#F0FDF4' },
   categoriaEmoji: { fontSize: 16 },
   categoriaTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '600' },
   categoriaTextoActivo: { color: '#D4850A' },
+  masaTextoActivo: { color: '#2D7A3A' },
 
   previewEmoji: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -446,35 +467,21 @@ const styles = StyleSheet.create({
   previewEmojiIcono: { fontSize: 28 },
   previewEmojiTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '500' },
 
-  botonAgregar: {
-    backgroundColor: '#1C0A00', borderRadius: 12,
-    padding: 14, alignItems: 'center', marginTop: 4,
-  },
+  botonAgregar: { backgroundColor: '#1C0A00', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 4 },
   botonAgregarTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 
-  menuLista: {
-    backgroundColor: '#FFFAF3', borderRadius: 16,
-    padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 24,
-  },
+  menuLista: { backgroundColor: '#FFFAF3', borderRadius: 16, padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 24 },
   menuListaTitulo: { fontSize: 14, fontWeight: '700', color: '#2D1200', marginBottom: 12 },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0E4D0',
-  },
+  menuSubtitulo: { fontSize: 13, fontWeight: '700', color: '#7A5C3A', marginTop: 10, marginBottom: 6 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0E4D0' },
   menuItemEmoji: { fontSize: 22 },
   menuItemInfo: { flex: 1 },
   menuItemNombre: { fontSize: 14, fontWeight: '600', color: '#2D1200' },
-  menuItemCategoria: { fontSize: 12, color: '#7A5C3A', marginTop: 2 },
-  menuItemEliminar: {
-    backgroundColor: '#FEE2E2', borderRadius: 8,
-    width: 28, height: 28, justifyContent: 'center', alignItems: 'center',
-  },
+  menuItemCategoria: { fontSize: 12, color: '#D4850A', fontWeight: '700', marginTop: 2 },
+  menuItemEliminar: { backgroundColor: '#FEE2E2', borderRadius: 8, width: 28, height: 28, justifyContent: 'center', alignItems: 'center' },
   menuItemEliminarTexto: { color: '#A85C00', fontSize: 12, fontWeight: '800' },
 
-  botonRegistrar: {
-    backgroundColor: '#D4850A', borderRadius: 14,
-    padding: 18, alignItems: 'center', marginTop: 8,
-  },
+  botonRegistrar: { backgroundColor: '#D4850A', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
   botonDeshabilitado: { opacity: 0.5 },
   botonRegistrarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 });

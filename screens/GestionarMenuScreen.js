@@ -13,6 +13,11 @@ const CATEGORIAS = [
     { id: 'otro', nombre: 'Otro', emoji: '🍽️' },
 ];
 
+const MASAS = [
+    { id: 'maiz', nombre: 'Maíz', emoji: '🌽' },
+    { id: 'arroz', nombre: 'Arroz', emoji: '🍚' },
+];
+
 const EMOJIS_PUPUSA = [
     { palabras: ['queso'], emoji: '🧀' },
     { palabras: ['frijol', 'frijoles'], emoji: '🫘' },
@@ -47,6 +52,7 @@ export default function GestionarMenuScreen({ navigation }) {
     const [nuevoNombre, setNuevoNombre] = useState('');
     const [nuevoPrecio, setNuevoPrecio] = useState('');
     const [nuevaCategoria, setNuevaCategoria] = useState('pupusa');
+    const [nuevaMasa, setNuevaMasa] = useState('maiz');
 
     useEffect(() => { cargarMenu(); }, []);
 
@@ -71,6 +77,7 @@ export default function GestionarMenuScreen({ navigation }) {
             id: Date.now().toString(),
             nombre: nuevoNombre.trim(),
             categoria: nuevaCategoria,
+            masa: nuevaCategoria === 'pupusa' ? nuevaMasa : null,
             emoji: obtenerEmoji(nuevaCategoria, nuevoNombre.trim()),
             precio: parseFloat(parseFloat(nuevoPrecio).toFixed(2)),
         };
@@ -78,6 +85,7 @@ export default function GestionarMenuScreen({ navigation }) {
         setNuevoNombre('');
         setNuevoPrecio('');
         setNuevaCategoria('pupusa');
+        setNuevaMasa('maiz');
     };
 
     const eliminarItem = (id) => {
@@ -111,6 +119,25 @@ export default function GestionarMenuScreen({ navigation }) {
         );
     }
 
+    // Agrupar pupusas por masa
+    const pupusasMaiz = menu.filter(i => i.categoria === 'pupusa' && (i.masa === 'maiz' || !i.masa));
+    const pupusasArroz = menu.filter(i => i.categoria === 'pupusa' && i.masa === 'arroz');
+    const refrescos = menu.filter(i => i.categoria === 'refresco');
+    const otros = menu.filter(i => i.categoria === 'otro');
+
+    const renderItems = (items) => items.map(item => (
+        <View key={item.id} style={styles.menuItem}>
+            <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
+            <View style={styles.menuItemInfo}>
+                <Text style={styles.menuItemNombre}>{item.nombre}</Text>
+                <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
+            </View>
+            <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
+                <Text style={styles.menuItemEliminarTexto}>✕</Text>
+            </TouchableOpacity>
+        </View>
+    ));
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
@@ -127,29 +154,8 @@ export default function GestionarMenuScreen({ navigation }) {
                 <Text style={styles.seccionTitulo}>➕ Agregar producto</Text>
 
                 <View style={styles.formulario}>
-                    <View style={styles.grupo}>
-                        <Text style={styles.label}>Nombre del producto</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Ej: Pupusa de queso"
-                            placeholderTextColor="#B0956A"
-                            value={nuevoNombre}
-                            onChangeText={setNuevoNombre}
-                        />
-                    </View>
 
-                    <View style={styles.grupo}>
-                        <Text style={styles.label}>Precio ($)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Ej: 0.50"
-                            placeholderTextColor="#B0956A"
-                            value={nuevoPrecio}
-                            onChangeText={setNuevoPrecio}
-                            keyboardType="decimal-pad"
-                        />
-                    </View>
-
+                    {/* Categoría */}
                     <View style={styles.grupo}>
                         <Text style={styles.label}>Categoría</Text>
                         <View style={styles.categorias}>
@@ -168,10 +174,59 @@ export default function GestionarMenuScreen({ navigation }) {
                         </View>
                     </View>
 
+                    {/* Masa — solo si es pupusa */}
+                    {nuevaCategoria === 'pupusa' && (
+                        <View style={styles.grupo}>
+                            <Text style={styles.label}>Masa</Text>
+                            <View style={styles.categorias}>
+                                {MASAS.map(masa => (
+                                    <TouchableOpacity
+                                        key={masa.id}
+                                        style={[styles.categoriaBtn, nuevaMasa === masa.id && styles.masaBtnActivo]}
+                                        onPress={() => setNuevaMasa(masa.id)}
+                                    >
+                                        <Text style={styles.categoriaEmoji}>{masa.emoji}</Text>
+                                        <Text style={[styles.categoriaTexto, nuevaMasa === masa.id && styles.masaTextoActivo]}>
+                                            {masa.nombre}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Nombre */}
+                    <View style={styles.grupo}>
+                        <Text style={styles.label}>Nombre del producto</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Ej: Pupusa de queso"
+                            placeholderTextColor="#B0956A"
+                            value={nuevoNombre}
+                            onChangeText={setNuevoNombre}
+                        />
+                    </View>
+
+                    {/* Precio */}
+                    <View style={styles.grupo}>
+                        <Text style={styles.label}>Precio ($)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Ej: 0.50"
+                            placeholderTextColor="#B0956A"
+                            value={nuevoPrecio}
+                            onChangeText={setNuevoPrecio}
+                            keyboardType="decimal-pad"
+                        />
+                    </View>
+
+                    {/* Preview emoji */}
                     {nuevoNombre.trim().length > 0 && nuevaCategoria === 'pupusa' && (
                         <View style={styles.previewEmoji}>
                             <Text style={styles.previewEmojiIcono}>{obtenerEmoji(nuevaCategoria, nuevoNombre)}</Text>
-                            <Text style={styles.previewEmojiTexto}>Así se verá tu producto</Text>
+                            <Text style={styles.previewEmojiTexto}>
+                                Pupusa de {nuevaMasa === 'maiz' ? 'maíz 🌽' : 'arroz 🍚'}
+                            </Text>
                         </View>
                     )}
 
@@ -180,6 +235,7 @@ export default function GestionarMenuScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
+                {/* Lista del menú */}
                 <Text style={styles.seccionTitulo}>
                     📋 Tu menú actual {menu.length > 0 ? `(${menu.length} productos)` : ''}
                 </Text>
@@ -192,28 +248,33 @@ export default function GestionarMenuScreen({ navigation }) {
                     </View>
                 ) : (
                     <>
-                        {['pupusa', 'refresco', 'otro'].map(cat => {
-                            const items = menu.filter(i => i.categoria === cat);
-                            if (items.length === 0) return null;
-                            const labels = { pupusa: '🫓 Pupusas', refresco: '🥤 Refrescos', otro: '🍽️ Otros' };
-                            return (
-                                <View key={cat} style={styles.categoriaSeccion}>
-                                    <Text style={styles.categoriaSeccionTitulo}>{labels[cat]}</Text>
-                                    {items.map(item => (
-                                        <View key={item.id} style={styles.menuItem}>
-                                            <Text style={styles.menuItemEmoji}>{item.emoji}</Text>
-                                            <View style={styles.menuItemInfo}>
-                                                <Text style={styles.menuItemNombre}>{item.nombre}</Text>
-                                                <Text style={styles.menuItemPrecio}>${item.precio.toFixed(2)}</Text>
-                                            </View>
-                                            <TouchableOpacity onPress={() => eliminarItem(item.id)} style={styles.menuItemEliminar}>
-                                                <Text style={styles.menuItemEliminarTexto}>✕</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))}
-                                </View>
-                            );
-                        })}
+                        {pupusasMaiz.length > 0 && (
+                            <View style={styles.categoriaSeccion}>
+                                <Text style={styles.categoriaSeccionTitulo}>🌽 Pupusas de Maíz</Text>
+                                {renderItems(pupusasMaiz)}
+                            </View>
+                        )}
+
+                        {pupusasArroz.length > 0 && (
+                            <View style={styles.categoriaSeccion}>
+                                <Text style={styles.categoriaSeccionTitulo}>🍚 Pupusas de Arroz</Text>
+                                {renderItems(pupusasArroz)}
+                            </View>
+                        )}
+
+                        {refrescos.length > 0 && (
+                            <View style={styles.categoriaSeccion}>
+                                <Text style={styles.categoriaSeccionTitulo}>🥤 Refrescos</Text>
+                                {renderItems(refrescos)}
+                            </View>
+                        )}
+
+                        {otros.length > 0 && (
+                            <View style={styles.categoriaSeccion}>
+                                <Text style={styles.categoriaSeccionTitulo}>🍽️ Otros</Text>
+                                {renderItems(otros)}
+                            </View>
+                        )}
 
                         <TouchableOpacity
                             style={[styles.botonGuardar, guardando && styles.botonDeshabilitado]}
@@ -252,7 +313,6 @@ const styles = StyleSheet.create({
     headerSub: { fontSize: 13, color: '#B0956A' },
 
     body: { padding: 20 },
-
     seccionTitulo: { fontSize: 16, fontWeight: '800', color: '#2D1200', marginBottom: 12, marginTop: 8 },
 
     formulario: {
@@ -276,9 +336,11 @@ const styles = StyleSheet.create({
         borderWidth: 1.5, borderColor: '#E8D5B7', backgroundColor: '#FDF6EE',
     },
     categoriaBtnActivo: { borderColor: '#D4850A', backgroundColor: '#FEF3E2' },
+    masaBtnActivo: { borderColor: '#2D7A3A', backgroundColor: '#F0FDF4' },
     categoriaEmoji: { fontSize: 16 },
     categoriaTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '600' },
     categoriaTextoActivo: { color: '#D4850A' },
+    masaTextoActivo: { color: '#2D7A3A' },
 
     previewEmoji: {
         flexDirection: 'row', alignItems: 'center', gap: 10,

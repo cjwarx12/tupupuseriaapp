@@ -10,17 +10,14 @@ export default function PedidoScreen({ route, navigation }) {
     const [cargando, setCargando] = useState(false);
     const [cargandoMenu, setCargandoMenu] = useState(true);
 
-    useEffect(() => {
-        cargarMenu();
-    }, []);
+    useEffect(() => { cargarMenu(); }, []);
 
     const cargarMenu = async () => {
         try {
             const docRef = doc(db, 'pupuserias', pupuseria.id);
             const snapshot = await getDoc(docRef);
             if (snapshot.exists()) {
-                const datos = snapshot.data();
-                setMenu(datos.menu || []);
+                setMenu(snapshot.data().menu || []);
             }
         } catch (error) {
             Alert.alert('Error', 'No se pudo cargar el menú.');
@@ -43,10 +40,7 @@ export default function PedidoScreen({ route, navigation }) {
         .reduce((acc, item) => acc + (item.precio * (cantidades[item.id] || 0)), 0);
 
     const confirmarPedido = async () => {
-        if (totalItems === 0) {
-            Alert.alert('Error', 'Selecciona al menos un producto');
-            return;
-        }
+        if (totalItems === 0) { Alert.alert('Error', 'Selecciona al menos un producto'); return; }
         setCargando(true);
         try {
             const qActivos = query(
@@ -63,6 +57,7 @@ export default function PedidoScreen({ route, navigation }) {
                     tipo: item.nombre,
                     cantidad: cantidades[item.id],
                     precio: item.precio,
+                    masa: item.masa || null,
                 }));
 
             await addDoc(collection(db, 'pedidos'), {
@@ -98,6 +93,31 @@ export default function PedidoScreen({ route, navigation }) {
         );
     }
 
+    // Agrupar por sección
+    const pupusasMaiz = menu.filter(i => i.categoria === 'pupusa' && (i.masa === 'maiz' || !i.masa));
+    const pupusasArroz = menu.filter(i => i.categoria === 'pupusa' && i.masa === 'arroz');
+    const refrescos = menu.filter(i => i.categoria === 'refresco');
+    const otros = menu.filter(i => i.categoria === 'otro');
+
+    const renderItems = (items) => items.map(item => (
+        <View key={item.id} style={styles.fila}>
+            <Text style={styles.tipoEmoji}>{item.emoji}</Text>
+            <View style={styles.tipoInfo}>
+                <Text style={styles.tipoNombre}>{item.nombre}</Text>
+                <Text style={styles.tipoPrecio}>${item.precio.toFixed(2)}</Text>
+            </View>
+            <View style={styles.contador}>
+                <TouchableOpacity style={styles.btnContador} onPress={() => cambiarCantidad(item.id, -1)}>
+                    <Text style={styles.btnContadorTexto}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.cantidad}>{cantidades[item.id] || 0}</Text>
+                <TouchableOpacity style={styles.btnContador} onPress={() => cambiarCantidad(item.id, 1)}>
+                    <Text style={styles.btnContadorTexto}>+</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    ));
+
     return (
         <ScrollView style={styles.container}>
             <StatusBar backgroundColor="#1C0A00" barStyle="light-content" />
@@ -118,87 +138,39 @@ export default function PedidoScreen({ route, navigation }) {
                 </View>
             ) : (
                 <>
-                    {menu.filter(i => i.categoria === 'pupusa').length > 0 && (
+                    {pupusasMaiz.length > 0 && (
                         <>
-                            <Text style={styles.seccion}>🫓 Pupusas</Text>
-                            {menu.filter(i => i.categoria === 'pupusa').map(item => (
-                                <View key={item.id} style={styles.fila}>
-                                    <Text style={styles.tipoEmoji}>{item.emoji}</Text>
-                                    <View style={styles.tipoInfo}>
-                                        <Text style={styles.tipoNombre}>{item.nombre}</Text>
-                                        <Text style={styles.tipoPrecio}>${item.precio.toFixed(2)}</Text>
-                                    </View>
-                                    <View style={styles.contador}>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, -1)}>
-                                            <Text style={styles.btnContadorTexto}>−</Text>
-                                        </TouchableOpacity>
-                                        <Text style={styles.cantidad}>{cantidades[item.id] || 0}</Text>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, 1)}>
-                                            <Text style={styles.btnContadorTexto}>+</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
+                            <Text style={styles.seccion}>🌽 Pupusas de Maíz</Text>
+                            {renderItems(pupusasMaiz)}
                         </>
                     )}
 
-                    {menu.filter(i => i.categoria === 'refresco').length > 0 && (
+                    {pupusasArroz.length > 0 && (
+                        <>
+                            <Text style={styles.seccion}>🍚 Pupusas de Arroz</Text>
+                            {renderItems(pupusasArroz)}
+                        </>
+                    )}
+
+                    {refrescos.length > 0 && (
                         <>
                             <Text style={styles.seccion}>🥤 Refrescos</Text>
-                            {menu.filter(i => i.categoria === 'refresco').map(item => (
-                                <View key={item.id} style={styles.fila}>
-                                    <Text style={styles.tipoEmoji}>{item.emoji}</Text>
-                                    <View style={styles.tipoInfo}>
-                                        <Text style={styles.tipoNombre}>{item.nombre}</Text>
-                                        <Text style={styles.tipoPrecio}>${item.precio.toFixed(2)}</Text>
-                                    </View>
-                                    <View style={styles.contador}>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, -1)}>
-                                            <Text style={styles.btnContadorTexto}>−</Text>
-                                        </TouchableOpacity>
-                                        <Text style={styles.cantidad}>{cantidades[item.id] || 0}</Text>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, 1)}>
-                                            <Text style={styles.btnContadorTexto}>+</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
+                            {renderItems(refrescos)}
                         </>
                     )}
 
-                    {menu.filter(i => i.categoria === 'otro').length > 0 && (
+                    {otros.length > 0 && (
                         <>
                             <Text style={styles.seccion}>🍽️ Otros</Text>
-                            {menu.filter(i => i.categoria === 'otro').map(item => (
-                                <View key={item.id} style={styles.fila}>
-                                    <Text style={styles.tipoEmoji}>{item.emoji}</Text>
-                                    <View style={styles.tipoInfo}>
-                                        <Text style={styles.tipoNombre}>{item.nombre}</Text>
-                                        <Text style={styles.tipoPrecio}>${item.precio.toFixed(2)}</Text>
-                                    </View>
-                                    <View style={styles.contador}>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, -1)}>
-                                            <Text style={styles.btnContadorTexto}>−</Text>
-                                        </TouchableOpacity>
-                                        <Text style={styles.cantidad}>{cantidades[item.id] || 0}</Text>
-                                        <TouchableOpacity style={styles.btnContador}
-                                            onPress={() => cambiarCantidad(item.id, 1)}>
-                                            <Text style={styles.btnContadorTexto}>+</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
+                            {renderItems(otros)}
                         </>
                     )}
 
                     <View style={styles.footer}>
                         <View style={styles.resumen}>
-                            <Text style={styles.resumenTexto}>{totalItems} {totalItems === 1 ? 'producto' : 'productos'}</Text>
+                            <Text style={styles.resumenTexto}>
+                                {totalItems} {totalItems === 1 ? 'producto' : 'productos'}
+                            </Text>
                             <Text style={styles.resumenPrecio}>${totalPrecio.toFixed(2)}</Text>
                         </View>
                         <TouchableOpacity
@@ -228,7 +200,7 @@ const styles = StyleSheet.create({
     subtitulo: { fontSize: 14, color: '#B0956A' },
 
     seccion: {
-        fontSize: 16, fontWeight: '800', color: '#2D1200',
+        fontSize: 15, fontWeight: '800', color: '#2D1200',
         padding: 20, paddingBottom: 8, paddingTop: 20,
         borderBottomWidth: 1, borderBottomColor: '#E8D5B7',
     },
