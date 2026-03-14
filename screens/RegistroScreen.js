@@ -1,6 +1,6 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, Image } from 'react-native';
 import { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, telefonoACorreo } from '../firebaseConfig';
 
@@ -26,26 +26,41 @@ export default function RegistroScreen({ navigation }) {
 
         setCargando(true);
         try {
+            // Paso 1 — Crear cuenta en Firebase Auth
             const correo = telefonoACorreo(telefono);
             const credencial = await createUserWithEmailAndPassword(auth, correo, contrasena);
             const uid = credencial.user.uid;
 
-            await setDoc(doc(db, 'usuarios', uid), {
-                nombre: nombre.trim(),
-                telefono: telefono.trim(),
-                uid,
-                rol: 'cliente',
-                tokenNotificacion: null,
-                fecha_registro: new Date(),
-            });
+            // Paso 2 — Guardar datos en Firestore con rollback
+            try {
+                await setDoc(doc(db, 'usuarios', uid), {
+                    nombre: nombre.trim(),
+                    telefono: telefono.trim(),
+                    uid,
+                    rol: 'cliente',
+                    tokenNotificacion: null,
+                    fecha_registro: new Date(),
+                });
 
-            Alert.alert('¡Listo!', 'Cuenta creada exitosamente');
+                // ✅ Todo salió bien
+                Alert.alert('¡Listo!', 'Cuenta creada exitosamente');
+
+            } catch (errorFirestore) {
+                // ── ROLLBACK: Firestore falló, eliminar cuenta Auth ──
+                console.log('Error Firestore, haciendo rollback...', errorFirestore);
+                try { await deleteUser(credencial.user); } catch (e) { }
+
+                Alert.alert(
+                    'Error al registrar',
+                    'Hubo un problema guardando tus datos. Por favor intenta de nuevo.'
+                );
+            }
 
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
-                Alert.alert('Error', 'Este número ya tiene una cuenta');
+                Alert.alert('Teléfono ya registrado', 'Este número ya tiene una cuenta. Inicia sesión.');
             } else {
-                Alert.alert('Error', 'No se pudo crear la cuenta');
+                Alert.alert('Error', 'No se pudo crear la cuenta. Verifica tu conexión.');
             }
         }
         setCargando(false);
