@@ -30,11 +30,6 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.botonPrincipalTexto}>🗺️ Ver pupuserías cercanas</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.botonNegocio}
-                onPress={() => navigation.navigate('RegistroPupuseria')}>
-                <Text style={styles.botonNegocioTexto}>🫓 ¿Tienes una pupusería? Regístrala</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={styles.botonSecundario} onPress={cerrarSesion}>
                 <Text style={styles.botonSecundarioTexto}>Cerrar sesión</Text>
             </TouchableOpacity>
@@ -86,21 +81,6 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '800',
-    },
-    botonNegocio: {
-        backgroundColor: '#FFFAF3',
-        borderWidth: 1.5,
-        borderColor: '#E8D5B7',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        width: '100%',
-        alignItems: 'center',
-    },
-    botonNegocioTexto: {
-        color: '#2D1200',
-        fontSize: 15,
-        fontWeight: '600',
     },
     botonSecundario: {
         borderWidth: 1.5,
