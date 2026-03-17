@@ -169,14 +169,14 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           try { await deleteDoc(doc(db, 'pupuserias', docPupuseriaId)); } catch (e) { }
         }
         try { await deleteUser(credencial.user); } catch (e) { }
-        Alert.alert('Error al registrar', 'Hubo un problema guardando tus datos. Por favor intenta de nuevo.');
+        Alert.alert('Error Firestore', 'Código: ' + errorFirestore.code + '\n' + errorFirestore.message);
       }
 
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert('Teléfono ya registrado', 'Este número ya tiene una cuenta. Si eres tú, inicia sesión.');
       } else {
-        Alert.alert('Error', 'No se pudo registrar. Verifica tu conexión e intenta de nuevo.');
+        Alert.alert('Error código: ' + error.code, 'Mensaje: ' + error.message);
       }
     }
 
@@ -274,7 +274,7 @@ export default function RegistroPupuseriaScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Masa — solo si es pupusa */}
+          {/* Masa */}
           {nuevaCategoria === 'pupusa' && (
             <View style={styles.grupo}>
               <Text style={styles.label}>Masa</Text>

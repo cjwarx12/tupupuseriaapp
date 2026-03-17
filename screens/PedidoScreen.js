@@ -93,11 +93,47 @@ export default function PedidoScreen({ route, navigation }) {
         );
     }
 
-    // Agrupar por sección
-    const pupusasMaiz = menu.filter(i => i.categoria === 'pupusa' && (i.masa === 'maiz' || !i.masa));
-    const pupusasArroz = menu.filter(i => i.categoria === 'pupusa' && i.masa === 'arroz');
+    // ── Agrupar pupusas por nombre de variedad ──
+    const pupusas = menu.filter(i => i.categoria === 'pupusa');
+    const variedadesMap = {};
+    pupusas.forEach(item => {
+        if (!variedadesMap[item.nombre]) {
+            variedadesMap[item.nombre] = { nombre: item.nombre, emoji: item.emoji, maiz: null, arroz: null };
+        }
+        if (item.masa === 'arroz') {
+            variedadesMap[item.nombre].arroz = item;
+        } else {
+            variedadesMap[item.nombre].maiz = item;
+        }
+    });
+    const listaVariedades = Object.values(variedadesMap);
+
     const refrescos = menu.filter(i => i.categoria === 'refresco');
     const otros = menu.filter(i => i.categoria === 'otro');
+
+    const renderContador = (item) => {
+        if (!item) {
+            return (
+                <View style={styles.celdaVacia}>
+                    <Text style={styles.celdaVaciaTexto}>—</Text>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.contadorWrap}>
+                <View style={styles.contador}>
+                    <TouchableOpacity style={styles.btnContador} onPress={() => cambiarCantidad(item.id, -1)}>
+                        <Text style={styles.btnContadorTexto}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.cantidad}>{cantidades[item.id] || 0}</Text>
+                    <TouchableOpacity style={styles.btnContador} onPress={() => cambiarCantidad(item.id, 1)}>
+                        <Text style={styles.btnContadorTexto}>+</Text>
+                    </TouchableOpacity>
+                </View>
+                <Text style={styles.tablaPrecio}>${item.precio.toFixed(2)}</Text>
+            </View>
+        );
+    };
 
     const renderItems = (items) => items.map(item => (
         <View key={item.id} style={styles.fila}>
@@ -138,18 +174,49 @@ export default function PedidoScreen({ route, navigation }) {
                 </View>
             ) : (
                 <>
-                    {pupusasMaiz.length > 0 && (
-                        <>
-                            <Text style={styles.seccion}>🌽 Pupusas de Maíz</Text>
-                            {renderItems(pupusasMaiz)}
-                        </>
-                    )}
+                    {listaVariedades.length > 0 && (
+                        <View style={styles.tablaContainer}>
+                            <Text style={styles.seccion}>🫓 Pupusas</Text>
 
-                    {pupusasArroz.length > 0 && (
-                        <>
-                            <Text style={styles.seccion}>🍚 Pupusas de Arroz</Text>
-                            {renderItems(pupusasArroz)}
-                        </>
+                            {/* Encabezado */}
+                            <View style={styles.tablaHeader}>
+                                <Text style={styles.tablaHeaderVariedad}>VARIEDAD</Text>
+                                <View style={styles.tablaHeaderMasa}>
+                                    <Text style={styles.tablaHeaderTexto}>🌽 MAÍZ</Text>
+                                </View>
+                                <View style={[styles.tablaHeaderMasa, styles.tablaHeaderUltima]}>
+                                    <Text style={styles.tablaHeaderTexto}>🍚 ARROZ</Text>
+                                </View>
+                            </View>
+
+                            {/* Filas */}
+                            {listaVariedades.map((variedad, index) => (
+                                <View
+                                    key={variedad.nombre}
+                                    style={[
+                                        styles.tablaFila,
+                                        index % 2 === 0 && styles.tablaFilaPar,
+                                        index === listaVariedades.length - 1 && styles.tablaFilaUltima,
+                                    ]}
+                                >
+                                    {/* Variedad */}
+                                    <View style={styles.tablaColumnaVariedad}>
+                                        <Text style={styles.tablaEmoji}>{variedad.emoji}</Text>
+                                        <Text style={styles.tablaNombre}>{variedad.nombre}</Text>
+                                    </View>
+
+                                    {/* Maíz */}
+                                    <View style={styles.tablaColumnaMasa}>
+                                        {renderContador(variedad.maiz)}
+                                    </View>
+
+                                    {/* Arroz */}
+                                    <View style={[styles.tablaColumnaMasa, styles.tablaColumnaUltima]}>
+                                        {renderContador(variedad.arroz)}
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
                     )}
 
                     {refrescos.length > 0 && (
@@ -201,9 +268,103 @@ const styles = StyleSheet.create({
 
     seccion: {
         fontSize: 15, fontWeight: '800', color: '#2D1200',
-        padding: 20, paddingBottom: 8, paddingTop: 20,
-        borderBottomWidth: 1, borderBottomColor: '#E8D5B7',
+        paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10,
     },
+
+    // ── TABLA ──
+    tablaContainer: { marginHorizontal: 16, marginTop: 4, marginBottom: 8 },
+
+    tablaHeader: {
+        flexDirection: 'row',
+        backgroundColor: '#1C0A00',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+    },
+    tablaHeaderVariedad: {
+        flex: 1.3,
+        color: '#D4850A',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+        borderRightWidth: 1,
+        borderRightColor: '#3D2010',
+        paddingRight: 6,
+    },
+    tablaHeaderMasa: {
+        flex: 1,
+        alignItems: 'center',
+        borderRightWidth: 1,
+        borderRightColor: '#3D2010',
+    },
+    tablaHeaderUltima: {
+        borderRightWidth: 0,
+    },
+    tablaHeaderTexto: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+
+    tablaFila: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFAF3',
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#E8D5B7',
+    },
+    tablaFilaPar: { backgroundColor: '#FDF6EE' },
+    tablaFilaUltima: {
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+    },
+
+    tablaColumnaVariedad: {
+        flex: 1.3,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        borderRightWidth: 1,
+        borderRightColor: '#E8D5B7',
+        paddingRight: 8,
+    },
+    tablaEmoji: { fontSize: 20 },
+    tablaNombre: { fontSize: 12, fontWeight: '700', color: '#2D1200', flexShrink: 1 },
+
+    tablaColumnaMasa: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRightWidth: 1,
+        borderRightColor: '#E8D5B7',
+        paddingVertical: 2,
+    },
+    tablaColumnaUltima: {
+        borderRightWidth: 0,
+    },
+
+    contadorWrap: { alignItems: 'center', gap: 3 },
+    tablaPrecio: { fontSize: 11, color: '#D4850A', fontWeight: '700' },
+
+    contador: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    btnContador: {
+        backgroundColor: '#D4850A', width: 26, height: 26,
+        borderRadius: 13, justifyContent: 'center', alignItems: 'center',
+    },
+    btnContadorTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', lineHeight: 20 },
+    cantidad: { fontSize: 14, fontWeight: 'bold', color: '#2D1200', minWidth: 18, textAlign: 'center' },
+
+    celdaVacia: { width: 70, height: 26, alignItems: 'center', justifyContent: 'center' },
+    celdaVaciaTexto: { fontSize: 16, color: '#D4C4A8', fontWeight: '300' },
+
+    // ── LISTA normal (refrescos/otros) ──
     fila: {
         flexDirection: 'row', alignItems: 'center', padding: 16, paddingHorizontal: 20,
         backgroundColor: '#FFFAF3', marginHorizontal: 16, marginTop: 8,
@@ -213,14 +374,6 @@ const styles = StyleSheet.create({
     tipoInfo: { flex: 1 },
     tipoNombre: { fontSize: 15, fontWeight: '600', color: '#2D1200' },
     tipoPrecio: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginTop: 2 },
-
-    contador: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    btnContador: {
-        backgroundColor: '#D4850A', width: 32, height: 32,
-        borderRadius: 16, justifyContent: 'center', alignItems: 'center',
-    },
-    btnContadorTexto: { color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' },
-    cantidad: { fontSize: 18, fontWeight: 'bold', color: '#2D1200', minWidth: 24, textAlign: 'center' },
 
     footer: { padding: 24, gap: 12 },
     resumen: {

@@ -64,12 +64,7 @@ export default function AppNavigator() {
                             const suscripcion = snapshotSuscripcion.docs[0].data();
                             const hoy = new Date();
                             const vencimiento = suscripcion.fecha_vencimiento.toDate();
-
-                            if (vencimiento < hoy) {
-                                setSuscripcionVencida(true);
-                            } else {
-                                setSuscripcionVencida(false);
-                            }
+                            setSuscripcionVencida(vencimiento < hoy);
                         } else {
                             setSuscripcionVencida(true);
                         }
@@ -128,14 +123,8 @@ export default function AppNavigator() {
                                             component={PanelPupuseriaScreen}
                                             initialParams={{ nombre: nombrePupuseria }}
                                         />
-                                        <Stack.Screen
-                                            name='MiSaldo'
-                                            component={MiSaldoScreen}
-                                        />
-                                        <Stack.Screen
-                                            name='GestionarMenu'
-                                            component={GestionarMenuScreen}
-                                        />
+                                        <Stack.Screen name='MiSaldo' component={MiSaldoScreen} />
+                                        <Stack.Screen name='GestionarMenu' component={GestionarMenuScreen} />
                                     </>
                                 )}
                             </>
@@ -145,6 +134,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name='Mapa' component={MapScreen} />
                                 <Stack.Screen name='Pedido' component={PedidoScreen} />
                                 <Stack.Screen name='Confirmacion' component={ConfirmacionScreen} />
+                                <Stack.Screen name='RegistroPupuseria' component={RegistroPupuseriaScreen} />
                             </>
                         )}
                     </>
