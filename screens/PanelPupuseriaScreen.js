@@ -70,10 +70,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
     unsubPedidosRef.current = onSnapshot(qPedidos, (snapshot) => {
       if (!activo) return;
-      const lista = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       lista.sort((a, b) => {
         if (a.estado === 'pendiente' && b.estado !== 'pendiente') return -1;
@@ -125,11 +122,8 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
             if (unsubPupuseriaRef.current) unsubPupuseriaRef.current();
             if (unsubPedidosRef.current) unsubPedidosRef.current();
             if (unsubTotalRef.current) unsubTotalRef.current();
-            try {
-              await signOut(auth);
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cerrar sesión.');
-            }
+            try { await signOut(auth); }
+            catch (error) { Alert.alert('Error', 'No se pudo cerrar sesión.'); }
           }
         }
       ]
@@ -153,26 +147,19 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         {
           text: 'Sí, entregado',
           onPress: async () => {
-            try {
-              await updateDoc(doc(db, 'pedidos', pedidoId), { estado: 'entregado' });
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo actualizar el pedido.');
-            }
+            try { await updateDoc(doc(db, 'pedidos', pedidoId), { estado: 'entregado' }); }
+            catch (error) { Alert.alert('Error', 'No se pudo actualizar el pedido.'); }
           }
         }
       ]
     );
   };
 
-  const numeroPedido = (index) => {
-    const num = (index + 1).toString().padStart(2, '0');
-    return `Pedido #${num}`;
-  };
+  const numeroPedido = (index) => `Pedido #${(index + 1).toString().padStart(2, '0')}`;
 
   const tiempoRelativo = (fecha) => {
     if (!fecha || !fecha.toDate) return '';
-    const ahora = new Date();
-    const diff = Math.floor((ahora - fecha.toDate()) / 60000);
+    const diff = Math.floor((new Date() - fecha.toDate()) / 60000);
     if (diff < 1) return 'ahora';
     if (diff === 1) return 'hace 1 min';
     return `hace ${diff} min`;
@@ -180,6 +167,20 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
   const renderPedido = ({ item, index }) => {
     const esListo = item.estado === 'listo';
+    const detalle = item.detalle || [];
+
+    // Agrupar pupusas por variedad con maíz y arroz
+    const pupusasMap = {};
+    detalle.filter(i => i.categoria === 'pupusa' || i.masa).forEach(i => {
+      if (!pupusasMap[i.tipo]) pupusasMap[i.tipo] = { nombre: i.tipo, maiz: 0, arroz: 0 };
+      if (i.masa === 'arroz') pupusasMap[i.tipo].arroz += i.cantidad;
+      else pupusasMap[i.tipo].maiz += i.cantidad;
+    });
+    const pupusas = Object.values(pupusasMap);
+
+    // Otros (refrescos, otros)
+    const otros = detalle.filter(i => i.categoria !== 'pupusa' && !i.masa);
+
     return (
       <View style={[styles.tarjeta, esListo && styles.tarjetaLista]}>
 
@@ -187,35 +188,52 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           <View style={styles.tarjetaHeaderIzq}>
             <Text style={styles.numeroPedido}>{numeroPedido(index)}</Text>
             <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
-              <Text style={styles.badgeTexto}>
-                {esListo ? '✅ Listo' : '🕐 Pendiente'}
-              </Text>
+              <Text style={styles.badgeTexto}>{esListo ? '✅ Listo' : '🕐 Pendiente'}</Text>
             </View>
           </View>
           <Text style={styles.tiempoTexto}>{tiempoRelativo(item.fecha)}</Text>
         </View>
 
-        <View style={styles.detalleBox}>
-          {item.detalle && (() => {
-            const items = item.detalle;
-            const filas = [];
-            for (let i = 0; i < items.length; i += 2) {
-              filas.push(
-                <View key={i} style={styles.detalleFila}>
-                  <Text style={styles.detalleLinea}>
-                    · {items[i].cantidad} {items[i].tipo}
-                  </Text>
-                  {items[i + 1] && (
-                    <Text style={styles.detalleLinea}>
-                      · {items[i + 1].cantidad} {items[i + 1].tipo}
-                    </Text>
-                  )}
-                </View>
-              );
-            }
-            return filas;
-          })()}
-        </View>
+        {/* Tabla maíz | arroz */}
+        {pupusas.length > 0 && (
+          <View style={styles.tablaDetalle}>
+            {/* Header */}
+            <View style={styles.tablaHeader}>
+              <Text style={styles.tablaHeaderVar}>VARIEDAD</Text>
+              <Text style={styles.tablaHeaderMasa}>🌽 MAÍZ</Text>
+              <Text style={styles.tablaHeaderMasa}>🍚 ARROZ</Text>
+            </View>
+            {/* Filas */}
+            {pupusas.map((p) => (
+              <View key={p.nombre} style={styles.tablaFila}>
+                <Text style={styles.tablaNombre}>{p.nombre}</Text>
+                <Text style={styles.tablaCantidad}>{p.maiz > 0 ? p.maiz : '—'}</Text>
+                <Text style={styles.tablaCantidad}>{p.arroz > 0 ? p.arroz : '—'}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Bebidas y otros */}
+        {otros.length > 0 && (
+          <View style={styles.otrosBox}>
+            <Text style={styles.otrosLabel}>🥤 Bebidas y otros</Text>
+            {(() => {
+              const filas = [];
+              for (let i = 0; i < otros.length; i += 2) {
+                filas.push(
+                  <View key={i} style={styles.detalleFila}>
+                    <Text style={styles.detalleLinea}>· {otros[i].cantidad} {otros[i].tipo}</Text>
+                    {otros[i + 1] && (
+                      <Text style={styles.detalleLinea}>· {otros[i + 1].cantidad} {otros[i + 1].tipo}</Text>
+                    )}
+                  </View>
+                );
+              }
+              return filas;
+            })()}
+          </View>
+        )}
 
         <View style={styles.tarjetaFooter}>
           <Text style={styles.totalItems}>
@@ -269,7 +287,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* Stats compactas */}
       <View style={styles.statsBar}>
         <View style={styles.statItem}>
           <Text style={styles.statNumero}>{totalHoy}</Text>
@@ -327,14 +344,9 @@ const styles = StyleSheet.create({
   cargandoTexto: { marginTop: 12, fontSize: 14, color: '#B0956A' },
 
   header: {
-    backgroundColor: '#1C0A00',
-    padding: 24,
-    paddingTop: 56,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderBottomWidth: 1,
-    borderBottomColor: '#3A2008',
+    backgroundColor: '#1C0A00', padding: 24, paddingTop: 56,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    borderBottomWidth: 1, borderBottomColor: '#3A2008',
   },
   headerSub: { fontSize: 12, color: '#7A5C3A', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
   headerNombre: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
@@ -345,12 +357,8 @@ const styles = StyleSheet.create({
   botonCerrarSesionTexto: { color: '#7A5C3A', fontSize: 12, fontWeight: '600' },
 
   statsBar: {
-    flexDirection: 'row',
-    backgroundColor: '#140800',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3A2008',
-    alignItems: 'center',
+    flexDirection: 'row', backgroundColor: '#140800',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#3A2008', alignItems: 'center',
   },
   statItem: { flex: 1, alignItems: 'center' },
   statAccion: { flex: 1, alignItems: 'center' },
@@ -362,31 +370,18 @@ const styles = StyleSheet.create({
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0A1A0F', padding: 8, paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#0F2A18',
-    gap: 8,
+    borderBottomWidth: 1, borderBottomColor: '#0F2A18', gap: 8,
   },
   enVivoPunto: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
   enVivoTexto: { fontSize: 11, color: '#16A34A', fontWeight: '600' },
 
   lista: { padding: 16, gap: 12 },
 
-  tarjeta: {
-    backgroundColor: '#2A1200',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#3A2008',
-  },
-  tarjetaLista: {
-    borderColor: '#14532D',
-    backgroundColor: '#0A1F12',
-  },
+  tarjeta: { backgroundColor: '#2A1200', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#3A2008' },
+  tarjetaLista: { borderColor: '#14532D', backgroundColor: '#0A1F12' },
 
   tarjetaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
   },
   tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   numeroPedido: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
@@ -396,28 +391,48 @@ const styles = StyleSheet.create({
   badgeTexto: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
   tiempoTexto: { fontSize: 11, color: '#7A5C3A' },
 
-  detalleBox: { marginBottom: 14, gap: 6 },
+  // Tabla maíz | arroz
+  tablaDetalle: {
+    borderRadius: 8, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#3A2008', marginBottom: 10,
+  },
+  tablaHeader: {
+    flexDirection: 'row', backgroundColor: '#3A1A00',
+    paddingVertical: 5, paddingHorizontal: 10,
+  },
+  tablaHeaderVar: { flex: 1.5, fontSize: 10, fontWeight: '800', color: '#D4850A', letterSpacing: 0.5 },
+  tablaHeaderMasa: {
+    flex: 1, fontSize: 10, fontWeight: '800', color: '#B0956A',
+    textAlign: 'center', letterSpacing: 0.3,
+    borderLeftWidth: 1, borderLeftColor: '#3A2008',
+  },
+  tablaFila: {
+    flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 10,
+    borderTopWidth: 1, borderTopColor: '#3A2008',
+  },
+  tablaNombre: { flex: 1.5, fontSize: 12, color: '#C4A882', fontWeight: '600' },
+  tablaCantidad: {
+    flex: 1, fontSize: 12, fontWeight: '800', color: '#D4850A',
+    textAlign: 'center',
+    borderLeftWidth: 1, borderLeftColor: '#3A2008',
+  },
+
+  // Bebidas y otros
+  otrosBox: {
+    borderTopWidth: 1, borderTopColor: '#3A2008',
+    paddingTop: 8, marginBottom: 10, gap: 4,
+  },
+  otrosLabel: { fontSize: 10, color: '#7A5C3A', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   detalleFila: { flexDirection: 'row', gap: 8 },
-  detalleLinea: { flex: 1, fontSize: 13, color: '#C4A882' },
+  detalleLinea: { flex: 1, fontSize: 12, color: '#C4A882' },
 
   tarjetaFooter: { gap: 10 },
   totalItems: { fontSize: 14, color: '#B0956A', fontWeight: '600' },
   totalPrecio: { fontSize: 14, color: '#D4850A', fontWeight: '800' },
 
-  botonListo: {
-    backgroundColor: '#D4850A',
-    borderRadius: 10,
-    padding: 12,
-    alignItems: 'center',
-  },
+  botonListo: { backgroundColor: '#D4850A', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonListoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-
-  botonEntregado: {
-    backgroundColor: '#14532D',
-    borderRadius: 10,
-    padding: 12,
-    alignItems: 'center',
-  },
+  botonEntregado: { backgroundColor: '#14532D', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonEntregadoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
   vacioCentro: { alignItems: 'center', marginTop: 60 },

@@ -58,6 +58,7 @@ export default function PedidoScreen({ route, navigation }) {
                     cantidad: cantidades[item.id],
                     precio: item.precio,
                     masa: item.masa || null,
+                    categoria: item.categoria,
                 }));
 
             await addDoc(collection(db, 'pedidos'), {
@@ -77,6 +78,7 @@ export default function PedidoScreen({ route, navigation }) {
                 total: totalItems,
                 totalPrecio: parseFloat(totalPrecio.toFixed(2)),
                 numeroPedido,
+                detalle,
             });
         } catch (error) {
             Alert.alert('Error', 'No se pudo enviar el pedido');
@@ -93,7 +95,6 @@ export default function PedidoScreen({ route, navigation }) {
         );
     }
 
-    // ── Agrupar pupusas por nombre de variedad ──
     const pupusas = menu.filter(i => i.categoria === 'pupusa');
     const variedadesMap = {};
     pupusas.forEach(item => {
@@ -177,8 +178,6 @@ export default function PedidoScreen({ route, navigation }) {
                     {listaVariedades.length > 0 && (
                         <View style={styles.tablaContainer}>
                             <Text style={styles.seccion}>🫓 Pupusas</Text>
-
-                            {/* Encabezado */}
                             <View style={styles.tablaHeader}>
                                 <Text style={styles.tablaHeaderVariedad}>VARIEDAD</Text>
                                 <View style={styles.tablaHeaderMasa}>
@@ -188,8 +187,6 @@ export default function PedidoScreen({ route, navigation }) {
                                     <Text style={styles.tablaHeaderTexto}>🍚 ARROZ</Text>
                                 </View>
                             </View>
-
-                            {/* Filas */}
                             {listaVariedades.map((variedad, index) => (
                                 <View
                                     key={variedad.nombre}
@@ -199,18 +196,13 @@ export default function PedidoScreen({ route, navigation }) {
                                         index === listaVariedades.length - 1 && styles.tablaFilaUltima,
                                     ]}
                                 >
-                                    {/* Variedad */}
                                     <View style={styles.tablaColumnaVariedad}>
                                         <Text style={styles.tablaEmoji}>{variedad.emoji}</Text>
                                         <Text style={styles.tablaNombre}>{variedad.nombre}</Text>
                                     </View>
-
-                                    {/* Maíz */}
                                     <View style={styles.tablaColumnaMasa}>
                                         {renderContador(variedad.maiz)}
                                     </View>
-
-                                    {/* Arroz */}
                                     <View style={[styles.tablaColumnaMasa, styles.tablaColumnaUltima]}>
                                         {renderContador(variedad.arroz)}
                                     </View>
@@ -260,111 +252,47 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FDF6EE' },
     centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6EE' },
     cargandoTexto: { marginTop: 12, fontSize: 14, color: '#7A5C3A' },
-
     header: { backgroundColor: '#1C0A00', padding: 24, paddingTop: 48 },
     back: { color: '#D4850A', fontSize: 14, marginBottom: 12, fontWeight: '700' },
     titulo: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
     subtitulo: { fontSize: 14, color: '#B0956A' },
-
-    seccion: {
-        fontSize: 15, fontWeight: '800', color: '#2D1200',
-        paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10,
-    },
-
-    // ── TABLA ──
+    seccion: { fontSize: 15, fontWeight: '800', color: '#2D1200', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10 },
     tablaContainer: { marginHorizontal: 16, marginTop: 4, marginBottom: 8 },
-
     tablaHeader: {
-        flexDirection: 'row',
-        backgroundColor: '#1C0A00',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        alignItems: 'center',
+        flexDirection: 'row', backgroundColor: '#1C0A00',
+        borderTopLeftRadius: 12, borderTopRightRadius: 12,
+        paddingVertical: 10, paddingHorizontal: 10, alignItems: 'center',
     },
     tablaHeaderVariedad: {
-        flex: 1.3,
-        color: '#D4850A',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-        borderRightWidth: 1,
-        borderRightColor: '#3D2010',
-        paddingRight: 6,
+        flex: 1.3, color: '#D4850A', fontSize: 11, fontWeight: '800', letterSpacing: 0.5,
+        borderRightWidth: 1, borderRightColor: '#3D2010', paddingRight: 6,
     },
-    tablaHeaderMasa: {
-        flex: 1,
-        alignItems: 'center',
-        borderRightWidth: 1,
-        borderRightColor: '#3D2010',
-    },
-    tablaHeaderUltima: {
-        borderRightWidth: 0,
-    },
-    tablaHeaderTexto: {
-        color: '#FFFFFF',
-        fontSize: 11,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-
+    tablaHeaderMasa: { flex: 1, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#3D2010' },
+    tablaHeaderUltima: { borderRightWidth: 0 },
+    tablaHeaderTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
     tablaFila: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFAF3',
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#E8D5B7',
+        flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFAF3',
+        paddingVertical: 12, paddingHorizontal: 10,
+        borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#E8D5B7',
     },
     tablaFilaPar: { backgroundColor: '#FDF6EE' },
-    tablaFilaUltima: {
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
-    },
-
+    tablaFilaUltima: { borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     tablaColumnaVariedad: {
-        flex: 1.3,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        borderRightWidth: 1,
-        borderRightColor: '#E8D5B7',
-        paddingRight: 8,
+        flex: 1.3, flexDirection: 'row', alignItems: 'center', gap: 6,
+        borderRightWidth: 1, borderRightColor: '#E8D5B7', paddingRight: 8,
     },
     tablaEmoji: { fontSize: 20 },
     tablaNombre: { fontSize: 12, fontWeight: '700', color: '#2D1200', flexShrink: 1 },
-
-    tablaColumnaMasa: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRightWidth: 1,
-        borderRightColor: '#E8D5B7',
-        paddingVertical: 2,
-    },
-    tablaColumnaUltima: {
-        borderRightWidth: 0,
-    },
-
+    tablaColumnaMasa: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#E8D5B7', paddingVertical: 2 },
+    tablaColumnaUltima: { borderRightWidth: 0 },
     contadorWrap: { alignItems: 'center', gap: 3 },
     tablaPrecio: { fontSize: 11, color: '#D4850A', fontWeight: '700' },
-
     contador: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    btnContador: {
-        backgroundColor: '#D4850A', width: 26, height: 26,
-        borderRadius: 13, justifyContent: 'center', alignItems: 'center',
-    },
+    btnContador: { backgroundColor: '#D4850A', width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
     btnContadorTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', lineHeight: 20 },
     cantidad: { fontSize: 14, fontWeight: 'bold', color: '#2D1200', minWidth: 18, textAlign: 'center' },
-
     celdaVacia: { width: 70, height: 26, alignItems: 'center', justifyContent: 'center' },
     celdaVaciaTexto: { fontSize: 16, color: '#D4C4A8', fontWeight: '300' },
-
-    // ── LISTA normal (refrescos/otros) ──
     fila: {
         flexDirection: 'row', alignItems: 'center', padding: 16, paddingHorizontal: 20,
         backgroundColor: '#FFFAF3', marginHorizontal: 16, marginTop: 8,
@@ -374,7 +302,6 @@ const styles = StyleSheet.create({
     tipoInfo: { flex: 1 },
     tipoNombre: { fontSize: 15, fontWeight: '600', color: '#2D1200' },
     tipoPrecio: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginTop: 2 },
-
     footer: { padding: 24, gap: 12 },
     resumen: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -383,11 +310,9 @@ const styles = StyleSheet.create({
     },
     resumenTexto: { fontSize: 15, fontWeight: '600', color: '#2D1200' },
     resumenPrecio: { fontSize: 20, fontWeight: '800', color: '#D4850A' },
-
     boton: { backgroundColor: '#D4850A', borderRadius: 12, padding: 16, alignItems: 'center' },
     botonDesactivado: { opacity: 0.6 },
     botonTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-
     vacioCentro: { alignItems: 'center', marginTop: 60, padding: 24 },
     vacioEmoji: { fontSize: 48, marginBottom: 16 },
     vacioTexto: { fontSize: 18, fontWeight: '800', color: '#2D1200', marginBottom: 8 },
