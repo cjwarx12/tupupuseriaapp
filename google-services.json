@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "23479847487",
+    "project_id": "tupupuseriaapp",
+    "storage_bucket": "tupupuseriaapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23479847487:android:e6b9e0c629cb4ae02d868a",
+        "android_client_info": {
+          "package_name": "com.cjwarx12.tupupuseriaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDdm8G4Mn0pQaJaj9QsQGt5mTCh9Lmc-M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
