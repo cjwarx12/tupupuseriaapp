@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, StatusBar } from 'react-native';
+import { View, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDocsFromServer, doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegistroScreen from './screens/RegistroScreen';
@@ -19,6 +21,36 @@ import MiSaldoScreen from './screens/MiSaldoScreen';
 import GestionarMenuScreen from './screens/GestionarMenuScreen';
 
 const Stack = createNativeStackNavigator();
+
+// Configuracion de como se muestran las notificaciones cuando la app esta abierta
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
+
+// Funcion para obtener el token del celular
+const obtenerTokenNotificacion = async () => {
+    if (!Device.isDevice) return null;
+
+    const { status: statusExistente } = await Notifications.getPermissionsAsync();
+    let statusFinal = statusExistente;
+
+    if (statusExistente !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        statusFinal = status;
+    }
+
+    if (statusFinal !== 'granted') return null;
+
+    const token = await Notifications.getExpoPushTokenAsync({
+        projectId: '0e8bb595-d919-426b-ba18-6d6717627795',
+    });
+
+    return token.data;
+};
 
 export default function AppNavigator() {
     const [usuario, setUsuario] = useState(undefined);
@@ -41,6 +73,20 @@ export default function AppNavigator() {
             if (user) {
                 setVerificando(true);
                 try {
+                    // Guardar token de notificacion del cliente
+                    const token = await obtenerTokenNotificacion();
+                    if (token) {
+                        const qUsuario = query(
+                            collection(db, 'usuarios'),
+                            where('uid', '==', user.uid)
+                        );
+                        const snapshotUsuario = await getDocs(qUsuario);
+                        if (!snapshotUsuario.empty) {
+                            const docRef = doc(db, 'usuarios', snapshotUsuario.docs[0].id);
+                            await updateDoc(docRef, { tokenNotificacion: token });
+                        }
+                    }
+
                     const qPupuseria = query(
                         collection(db, 'pupuserias'),
                         where('dueno_uid', '==', user.uid)

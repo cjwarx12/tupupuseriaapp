@@ -3,9 +3,30 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert, StatusBar
 } from 'react-native';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
+
+const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
+  try {
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        to: token,
+        title: '🫓 ¡Tu pedido está listo!',
+        body: `Tu pedido #${numeroPedido} en ${nombrePupuseria} ya está listo para recoger`,
+        sound: 'default',
+        data: { tipo: 'pedido_listo' },
+      }),
+    });
+  } catch (error) {
+    console.log('Error enviando notificacion:', error);
+  }
+};
 
 export default function PanelPupuseriaScreen({ route, navigation }) {
   const { nombre } = route.params;
@@ -130,9 +151,25 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     );
   };
 
-  const marcarListo = async (pedidoId) => {
+  const marcarListo = async (pedido, index) => {
     try {
-      await updateDoc(doc(db, 'pedidos', pedidoId), { estado: 'listo' });
+      // Actualizar estado en Firestore
+      await updateDoc(doc(db, 'pedidos', pedido.id), { estado: 'listo' });
+
+      // Buscar token del cliente para enviarle notificacion
+      const qUsuario = query(
+        collection(db, 'usuarios'),
+        where('uid', '==', pedido.cliente_uid)
+      );
+      const snapshotUsuario = await getDocs(qUsuario);
+
+      if (!snapshotUsuario.empty) {
+        const cliente = snapshotUsuario.docs[0].data();
+        if (cliente.tokenNotificacion) {
+          const numPedido = (index + 1).toString().padStart(2, '0');
+          await enviarNotificacion(cliente.tokenNotificacion, numPedido, nombre);
+        }
+      }
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar el pedido.');
     }
@@ -169,7 +206,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     const esListo = item.estado === 'listo';
     const detalle = item.detalle || [];
 
-    // Agrupar pupusas por variedad con maíz y arroz
     const pupusasMap = {};
     detalle.filter(i => i.categoria === 'pupusa' || i.masa).forEach(i => {
       if (!pupusasMap[i.tipo]) pupusasMap[i.tipo] = { nombre: i.tipo, maiz: 0, arroz: 0 };
@@ -177,13 +213,10 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       else pupusasMap[i.tipo].maiz += i.cantidad;
     });
     const pupusas = Object.values(pupusasMap);
-
-    // Otros (refrescos, otros)
     const otros = detalle.filter(i => i.categoria !== 'pupusa' && !i.masa);
 
     return (
       <View style={[styles.tarjeta, esListo && styles.tarjetaLista]}>
-
         <View style={styles.tarjetaHeader}>
           <View style={styles.tarjetaHeaderIzq}>
             <Text style={styles.numeroPedido}>{numeroPedido(index)}</Text>
@@ -194,16 +227,13 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           <Text style={styles.tiempoTexto}>{tiempoRelativo(item.fecha)}</Text>
         </View>
 
-        {/* Tabla maíz | arroz */}
         {pupusas.length > 0 && (
           <View style={styles.tablaDetalle}>
-            {/* Header */}
             <View style={styles.tablaHeader}>
               <Text style={styles.tablaHeaderVar}>VARIEDAD</Text>
               <Text style={styles.tablaHeaderMasa}>🌽 MAÍZ</Text>
               <Text style={styles.tablaHeaderMasa}>🍚 ARROZ</Text>
             </View>
-            {/* Filas */}
             {pupusas.map((p) => (
               <View key={p.nombre} style={styles.tablaFila}>
                 <Text style={styles.tablaNombre}>{p.nombre}</Text>
@@ -214,7 +244,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Bebidas y otros */}
         {otros.length > 0 && (
           <View style={styles.otrosBox}>
             <Text style={styles.otrosLabel}>🥤 Bebidas y otros</Text>
@@ -240,7 +269,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
             {item.total} items · <Text style={styles.totalPrecio}>${item.total_precio ? item.total_precio.toFixed(2) : '—'}</Text>
           </Text>
           {!esListo ? (
-            <TouchableOpacity style={styles.botonListo} onPress={() => marcarListo(item.id)}>
+            <TouchableOpacity style={styles.botonListo} onPress={() => marcarListo(item, index)}>
               <Text style={styles.botonListoTexto}>✅ Marcar como LISTO</Text>
             </TouchableOpacity>
           ) : (
@@ -249,7 +278,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
         </View>
-
       </View>
     );
   };
@@ -342,7 +370,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1C0A00' },
   centrado: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1C0A00' },
   cargandoTexto: { marginTop: 12, fontSize: 14, color: '#B0956A' },
-
   header: {
     backgroundColor: '#1C0A00', padding: 24, paddingTop: 56,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -355,7 +382,6 @@ const styles = StyleSheet.create({
   headerBadgeTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   botonCerrarSesion: { borderWidth: 1, borderColor: '#3A2008', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
   botonCerrarSesionTexto: { color: '#7A5C3A', fontSize: 12, fontWeight: '600' },
-
   statsBar: {
     flexDirection: 'row', backgroundColor: '#140800',
     paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#3A2008', alignItems: 'center',
@@ -366,7 +392,6 @@ const styles = StyleSheet.create({
   statNumero: { fontSize: 16, fontWeight: '800', color: '#D4850A' },
   statLabel: { fontSize: 9, color: '#7A5C3A', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   statDivider: { width: 1, height: 28, backgroundColor: '#3A2008' },
-
   enVivoBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0A1A0F', padding: 8, paddingHorizontal: 16,
@@ -374,12 +399,9 @@ const styles = StyleSheet.create({
   },
   enVivoPunto: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
   enVivoTexto: { fontSize: 11, color: '#16A34A', fontWeight: '600' },
-
   lista: { padding: 16, gap: 12 },
-
   tarjeta: { backgroundColor: '#2A1200', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#3A2008' },
   tarjetaLista: { borderColor: '#14532D', backgroundColor: '#0A1F12' },
-
   tarjetaHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
   },
@@ -390,8 +412,6 @@ const styles = StyleSheet.create({
   badgeListo: { backgroundColor: '#0A2A14' },
   badgeTexto: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
   tiempoTexto: { fontSize: 11, color: '#7A5C3A' },
-
-  // Tabla maíz | arroz
   tablaDetalle: {
     borderRadius: 8, overflow: 'hidden',
     borderWidth: 1, borderColor: '#3A2008', marginBottom: 10,
@@ -416,8 +436,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderLeftWidth: 1, borderLeftColor: '#3A2008',
   },
-
-  // Bebidas y otros
   otrosBox: {
     borderTopWidth: 1, borderTopColor: '#3A2008',
     paddingTop: 8, marginBottom: 10, gap: 4,
@@ -425,16 +443,13 @@ const styles = StyleSheet.create({
   otrosLabel: { fontSize: 10, color: '#7A5C3A', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   detalleFila: { flexDirection: 'row', gap: 8 },
   detalleLinea: { flex: 1, fontSize: 12, color: '#C4A882' },
-
   tarjetaFooter: { gap: 10 },
   totalItems: { fontSize: 14, color: '#B0956A', fontWeight: '600' },
   totalPrecio: { fontSize: 14, color: '#D4850A', fontWeight: '800' },
-
   botonListo: { backgroundColor: '#D4850A', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonListoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   botonEntregado: { backgroundColor: '#14532D', borderRadius: 10, padding: 12, alignItems: 'center' },
   botonEntregadoTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-
   vacioCentro: { alignItems: 'center', marginTop: 60 },
   vacioEmoji: { fontSize: 48, marginBottom: 16 },
   vacioTexto: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
