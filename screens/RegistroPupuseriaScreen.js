@@ -46,7 +46,7 @@ const obtenerEmoji = (categoriaId, nombreProducto) => {
   return '🫓';
 };
 
-export default function RegistroPupuseriaScreen({ navigation }) {
+export default function RegistroPupuseriaScreen({ navigation, route }) {
   const [nombre, setNombre] = useState('');
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -116,7 +116,7 @@ export default function RegistroPupuseriaScreen({ navigation }) {
     setCargandoGuardar(true);
 
     try {
-      // FIX 1: Verificar nombre duplicado
+      // Verificar nombre duplicado
       const qNombre = query(collection(db, 'pupuserias'), where('nombre', '==', nombre.trim()));
       const snapshotNombre = await getDocs(qNombre);
       if (!snapshotNombre.empty) {
@@ -162,6 +162,22 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           meses_acumulados: 1,
         });
 
+        // REGISTRO EXITOSO — llamar a onRegistroCompleto para actualizar el rol
+        setCargandoGuardar(false);
+        Alert.alert(
+          '¡Pupusería registrada!',
+          `${nombre.trim()} ya está en TuPupuseriaApp. Tienes 30 días de prueba gratis.`,
+          [{
+            text: 'Ir a mi panel',
+            onPress: async () => {
+              const onRegistroCompleto = route?.params?.onRegistroCompleto;
+              if (onRegistroCompleto) {
+                await onRegistroCompleto();
+              }
+            }
+          }]
+        );
+
       } catch (errorFirestore) {
         // ROLLBACK
         console.log('Error Firestore, rollback...', errorFirestore);
@@ -169,18 +185,18 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           try { await deleteDoc(doc(db, 'pupuserias', docPupuseriaId)); } catch (e) { }
         }
         try { await deleteUser(credencial.user); } catch (e) { }
-        Alert.alert('Error Firestore', 'Código: ' + errorFirestore.code + '\n' + errorFirestore.message);
+        Alert.alert('Error', 'No se pudo registrar. Intenta de nuevo.');
+        setCargandoGuardar(false);
       }
 
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert('Teléfono ya registrado', 'Este número ya tiene una cuenta. Si eres tú, inicia sesión.');
       } else {
-        Alert.alert('Error código: ' + error.code, 'Mensaje: ' + error.message);
+        Alert.alert('Error', 'No se pudo registrar. Intenta de nuevo.');
       }
+      setCargandoGuardar(false);
     }
-
-    setCargandoGuardar(false);
   };
 
   const pupusasMaiz = menuItems.filter(i => i.categoria === 'pupusa' && (i.masa === 'maiz' || !i.masa));
@@ -256,8 +272,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
         <Text style={styles.seccionSub}>Agrega los productos que vendes. Puedes editarlo después.</Text>
 
         <View style={styles.menuFormulario}>
-
-          {/* Categoría */}
           <View style={styles.grupo}>
             <Text style={styles.label}>Categoría</Text>
             <View style={styles.categorias}>
@@ -274,7 +288,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Masa */}
           {nuevaCategoria === 'pupusa' && (
             <View style={styles.grupo}>
               <Text style={styles.label}>Masa</Text>
@@ -293,14 +306,12 @@ export default function RegistroPupuseriaScreen({ navigation }) {
             </View>
           )}
 
-          {/* Nombre */}
           <View style={styles.grupo}>
             <Text style={styles.label}>Nombre del producto</Text>
             <TextInput style={styles.input} placeholder="Ej: Pupusa de queso"
               placeholderTextColor="#B0956A" value={nuevoNombre} onChangeText={setNuevoNombre} />
           </View>
 
-          {/* Precio */}
           <View style={styles.grupo}>
             <Text style={styles.label}>Precio ($)</Text>
             <TextInput style={styles.input} placeholder="Ej: 0.50"
@@ -308,7 +319,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
               keyboardType="decimal-pad" />
           </View>
 
-          {/* Preview */}
           {nuevoNombre.trim().length > 0 && nuevaCategoria === 'pupusa' && (
             <View style={styles.previewEmoji}>
               <Text style={styles.previewEmojiIcono}>{obtenerEmoji(nuevaCategoria, nuevoNombre)}</Text>
@@ -323,11 +333,9 @@ export default function RegistroPupuseriaScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Lista del menú */}
         {menuItems.length > 0 && (
           <View style={styles.menuLista}>
             <Text style={styles.menuListaTitulo}>Tu menú ({menuItems.length} productos)</Text>
-
             {pupusasMaiz.length > 0 && (
               <>
                 <Text style={styles.menuSubtitulo}>🌽 Pupusas de Maíz</Text>
@@ -345,7 +353,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
                 ))}
               </>
             )}
-
             {pupusasArroz.length > 0 && (
               <>
                 <Text style={styles.menuSubtitulo}>🍚 Pupusas de Arroz</Text>
@@ -363,7 +370,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
                 ))}
               </>
             )}
-
             {refrescos.length > 0 && (
               <>
                 <Text style={styles.menuSubtitulo}>🥤 Refrescos</Text>
@@ -381,7 +387,6 @@ export default function RegistroPupuseriaScreen({ navigation }) {
                 ))}
               </>
             )}
-
             {otros.length > 0 && (
               <>
                 <Text style={styles.menuSubtitulo}>🍽️ Otros</Text>
@@ -422,13 +427,10 @@ export default function RegistroPupuseriaScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDF6EE' },
   content: { padding: 24, paddingBottom: 48 },
-
   botonRegresar: { marginBottom: 24 },
   botonRegresarTexto: { fontSize: 15, color: '#D4850A', fontWeight: '700' },
-
   titulo: { fontSize: 32, fontWeight: '800', color: '#2D1200', letterSpacing: -0.5, marginBottom: 10, lineHeight: 38 },
   subtitulo: { fontSize: 14, color: '#7A5C3A', marginBottom: 24, lineHeight: 20 },
-
   gpsIndicador: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, padding: 14, marginBottom: 28 },
   gpsCargando: { backgroundColor: '#FDF6EE', borderWidth: 1.5, borderColor: '#E8D5B7' },
   gpsOk: { backgroundColor: '#F0FDF4', borderWidth: 1.5, borderColor: '#BBF7D0' },
@@ -437,16 +439,12 @@ const styles = StyleSheet.create({
   gpsIndicadorTextoOk: { fontSize: 13, color: '#15803D', fontWeight: '600' },
   gpsIndicadorTextoError: { fontSize: 13, color: '#D4850A', fontWeight: '600' },
   gpsReintentar: { fontSize: 13, color: '#D4850A', fontWeight: '700', marginLeft: 8 },
-
   seccionTitulo: { fontSize: 16, fontWeight: '800', color: '#2D1200', marginBottom: 6, marginTop: 8 },
   seccionSub: { fontSize: 13, color: '#7A5C3A', marginBottom: 16, lineHeight: 18 },
-
   grupo: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#2D1200', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { backgroundColor: '#FFFAF3', borderWidth: 1.5, borderColor: '#E8D5B7', borderRadius: 12, padding: 14, fontSize: 15, color: '#2D1200' },
-
   menuFormulario: { backgroundColor: '#FFFAF3', borderRadius: 16, padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 16 },
-
   categorias: { flexDirection: 'row', gap: 10 },
   categoriaBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -458,7 +456,6 @@ const styles = StyleSheet.create({
   categoriaTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '600' },
   categoriaTextoActivo: { color: '#D4850A' },
   masaTextoActivo: { color: '#2D7A3A' },
-
   previewEmoji: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#FDF6EE', borderRadius: 10, padding: 12,
@@ -466,10 +463,8 @@ const styles = StyleSheet.create({
   },
   previewEmojiIcono: { fontSize: 28 },
   previewEmojiTexto: { fontSize: 13, color: '#7A5C3A', fontWeight: '500' },
-
   botonAgregar: { backgroundColor: '#1C0A00', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 4 },
   botonAgregarTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-
   menuLista: { backgroundColor: '#FFFAF3', borderRadius: 16, padding: 16, borderWidth: 1.5, borderColor: '#E8D5B7', marginBottom: 24 },
   menuListaTitulo: { fontSize: 14, fontWeight: '700', color: '#2D1200', marginBottom: 12 },
   menuSubtitulo: { fontSize: 13, fontWeight: '700', color: '#7A5C3A', marginTop: 10, marginBottom: 6 },
@@ -480,7 +475,6 @@ const styles = StyleSheet.create({
   menuItemCategoria: { fontSize: 12, color: '#D4850A', fontWeight: '700', marginTop: 2 },
   menuItemEliminar: { backgroundColor: '#FEE2E2', borderRadius: 8, width: 28, height: 28, justifyContent: 'center', alignItems: 'center' },
   menuItemEliminarTexto: { color: '#A85C00', fontSize: 12, fontWeight: '800' },
-
   botonRegistrar: { backgroundColor: '#D4850A', borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 8 },
   botonDeshabilitado: { opacity: 0.5 },
   botonRegistrarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
