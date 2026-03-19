@@ -21,8 +21,8 @@ export default function MapScreen({ navigation }) {
     const [ubicacion, setUbicacion] = useState(null);
     const [pupuserias, setPupuserias] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [errorMapa, setErrorMapa] = useState(false);
     const [errorUbicacion, setErrorUbicacion] = useState(false);
+    const [errorMapa, setErrorMapa] = useState(false);
 
     useEffect(() => {
         iniciar();
@@ -36,22 +36,19 @@ export default function MapScreen({ navigation }) {
                 setCargando(false);
                 return;
             }
-            const loc = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
+
+            // Cargamos ubicacion y pupuserias en paralelo para mayor velocidad
+            const locPromise = Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Low,
             });
+
+            const snapPromise = getDocs(collection(db, 'pupuserias'));
+
+            const [loc, snapshot] = await Promise.all([locPromise, snapPromise]);
+
             const coords = loc.coords;
             setUbicacion(coords);
-            await cargarPupuserias(coords);
-        } catch (error) {
-            console.log('Error obteniendo ubicación:', error);
-            setErrorUbicacion(true);
-            setCargando(false);
-        }
-    };
 
-    const cargarPupuserias = async (coords) => {
-        try {
-            const snapshot = await getDocs(collection(db, 'pupuserias'));
             const todas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const cercanas = todas.filter(p => {
                 if (!p.latitud || !p.longitud) return false;
@@ -61,9 +58,11 @@ export default function MapScreen({ navigation }) {
                 );
                 return distancia <= 1;
             });
+
             setPupuserias(cercanas);
         } catch (error) {
-            console.log('Error cargando pupuserías:', error);
+            console.log('Error:', error);
+            setErrorUbicacion(true);
         }
         setCargando(false);
     };
@@ -74,7 +73,7 @@ export default function MapScreen({ navigation }) {
                 <View style={styles.centro}>
                     <Text style={styles.errorEmoji}>📍</Text>
                     <Text style={styles.errorTexto}>Sin acceso a ubicación</Text>
-                    <Text style={styles.errorSub}>Activa el GPS y vuelve a intentarlo</Text>
+                    <Text style={styles.errorSub}>Activa el GPS e intenta de nuevo</Text>
                 </View>
             );
         }
@@ -108,7 +107,6 @@ export default function MapScreen({ navigation }) {
                     longitudeDelta: 0.005,
                 }}
                 showsUserLocation={true}
-                onMapReady={() => console.log('Mapa listo')}
             >
                 {pupuserias.map(p => (
                     <Marker
