@@ -152,11 +152,20 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
   };
 
   const marcarListo = async (pedido, index) => {
+    // ── PASO 1: Actualizar el pedido en Firestore ──────────────────
+    // Este try-catch es independiente. Si falla aquí, sí mostramos error.
     try {
-      // Actualizar estado en Firestore
       await updateDoc(doc(db, 'pedidos', pedido.id), { estado: 'listo' });
+    } catch (error) {
+      console.log('Error actualizando pedido:', error.code);
+      Alert.alert('Error', 'No se pudo actualizar el pedido.');
+      return; // Salimos si no se pudo actualizar
+    }
 
-      // Buscar token del cliente para enviarle notificacion
+    // ── PASO 2: Enviar notificación (opcional, no bloquea) ─────────
+    // Si falla la notificación, el pedido YA quedó marcado como listo.
+    // No mostramos error al dueño por esto.
+    try {
       const qUsuario = query(
         collection(db, 'usuarios'),
         where('uid', '==', pedido.cliente_uid)
@@ -166,12 +175,15 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       if (!snapshotUsuario.empty) {
         const cliente = snapshotUsuario.docs[0].data();
         if (cliente.tokenNotificacion) {
-          const numPedido = (index + 1).toString().padStart(2, '0');
+          const numPedido = pedido.numero_pedido
+            ? pedido.numero_pedido.toString().padStart(2, '0')
+            : (index + 1).toString().padStart(2, '0');
           await enviarNotificacion(cliente.tokenNotificacion, numPedido, nombre);
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el pedido.');
+      // La notificación falló pero el pedido ya se actualizó — no pasa nada
+      console.log('Notificacion no enviada:', error.code);
     }
   };
 
@@ -192,7 +204,12 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
     );
   };
 
-  const numeroPedido = (index) => `Pedido #${(index + 1).toString().padStart(2, '0')}`;
+  const numeroPedido = (item, index) => {
+    const num = item.numero_pedido
+      ? item.numero_pedido.toString().padStart(2, '0')
+      : (index + 1).toString().padStart(2, '0');
+    return `Pedido #${num}`;
+  };
 
   const tiempoRelativo = (fecha) => {
     if (!fecha || !fecha.toDate) return '';
@@ -219,7 +236,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       <View style={[styles.tarjeta, esListo && styles.tarjetaLista]}>
         <View style={styles.tarjetaHeader}>
           <View style={styles.tarjetaHeaderIzq}>
-            <Text style={styles.numeroPedido}>{numeroPedido(index)}</Text>
+            <Text style={styles.numeroPedido}>{numeroPedido(item, index)}</Text>
             <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
               <Text style={styles.badgeTexto}>{esListo ? '✅ Listo' : '🕐 Pendiente'}</Text>
             </View>
