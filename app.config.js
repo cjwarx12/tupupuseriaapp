@@ -22,6 +22,7 @@ export default {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
         }
       },
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
       adaptiveIcon: {
         backgroundColor: "#FDF6EE",
         foregroundImage: "./assets/android-icon-foreground.png",
