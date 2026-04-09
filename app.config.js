@@ -16,7 +16,7 @@ export default {
     },
     android: {
       package: "com.cjwarx12.tupupuseriaapp",
-      versionCode: 1,
+      versionCode: 2,
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
@@ -30,12 +30,24 @@ export default {
       },
       permissions: [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ]
     },
     web: {
       favicon: "./assets/favicon.png"
     },
+    plugins: [
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#D4850A",
+          sounds: []
+        }
+      ]
+    ],
     extra: {
       eas: {
         projectId: "0e8bb595-d919-426b-ba18-6d6717627795"

@@ -31,14 +31,20 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// ── Obtener token y guardarlo en Firestore en el documento del cliente ──
+// ── Obtener token y guardarlo en Firestore ──
 const guardarTokenCliente = async (uid) => {
   try {
-    // Solo funciona en dispositivo físico, no en simulador
-    if (!Device.isDevice) return;
+    console.log('=== INICIANDO TOKEN ===');
+    console.log('Device.isDevice:', Device.isDevice);
 
-    // Pedir permiso para notificaciones
+    if (!Device.isDevice) {
+      console.log('NO es dispositivo físico - saliendo');
+      return;
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('Permiso actual:', existingStatus);
+
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
@@ -46,30 +52,33 @@ const guardarTokenCliente = async (uid) => {
       finalStatus = status;
     }
 
-    // Si el usuario no dio permiso, salimos sin error
-    if (finalStatus !== 'granted') return;
+    console.log('Permiso final:', finalStatus);
 
-    // Obtener el token — projectId es OBLIGATORIO en Expo SDK 55
+    if (finalStatus !== 'granted') {
+      console.log('Permiso denegado - saliendo');
+      return;
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: '0e8bb595-d919-426b-ba18-6d6717627795',
     });
-    const token = tokenData.data;
+    console.log('TOKEN OBTENIDO:', tokenData.data);
 
-    // Buscar el documento del cliente en Firestore y guardar el token
     const qUsuario = query(
       collection(db, 'usuarios'),
       where('uid', '==', uid)
     );
     const snapshot = await getDocs(qUsuario);
+    console.log('Documento encontrado:', !snapshot.empty);
 
     if (!snapshot.empty) {
       const docRef = doc(db, 'usuarios', snapshot.docs[0].id);
-      await updateDoc(docRef, { tokenNotificacion: token });
+      await updateDoc(docRef, { tokenNotificacion: tokenData.data });
+      console.log('TOKEN GUARDADO EN FIRESTORE ✅');
     }
 
   } catch (error) {
-    // Si falla el token, la app sigue funcionando normal
-    console.log('Error guardando token:', error);
+    console.log('ERROR en token:', error.message);
   }
 };
 
