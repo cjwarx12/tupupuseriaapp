@@ -9,7 +9,7 @@ const firebaseConfig = {
     projectId: "tupupuseriaapp",
     storageBucket: "tupupuseriaapp.firebasestorage.app",
     messagingSenderId: "23479847487",
-    appId: "1:23479847487:web:f5f9cd7d3c2ddd132d868a"
+    appId: "1:23479847487:android:e6b9e0c629cb4ae02d868a"
 };
 
 const app = initializeApp(firebaseConfig);
