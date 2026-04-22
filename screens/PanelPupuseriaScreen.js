@@ -8,8 +8,8 @@ import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
 // ── Enviar notificación al cliente cuando su pedido está listo ──
-// Se agrega channelId: 'default' — obligatorio en Android para que
-// la notificación no sea descartada silenciosamente por el sistema
+// Se agregan numeroPedido y nombrePupuseria en data para que
+// PedidoListoScreen los muestre al navegar automáticamente
 const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
   try {
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -24,7 +24,11 @@ const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
         body: `Tu pedido #${numeroPedido} en ${nombrePupuseria} ya está listo para recoger`,
         sound: 'default',
         channelId: 'default',
-        data: { tipo: 'pedido_listo' },
+        data: {
+          tipo: 'pedido_listo',
+          numeroPedido: numeroPedido,
+          nombrePupuseria: nombrePupuseria,
+        },
       }),
     });
   } catch (error) {
@@ -156,7 +160,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
   };
 
   const marcarListo = async (pedido, index) => {
-    // ── PASO 1: Actualizar el pedido en Firestore ──────────────────
+    // ── PASO 1: Actualizar el pedido en Firestore ──
     try {
       await updateDoc(doc(db, 'pedidos', pedido.id), { estado: 'listo' });
     } catch (error) {
@@ -165,7 +169,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       return;
     }
 
-    // ── PASO 2: Enviar notificación al cliente ─────────────────────
+    // ── PASO 2: Enviar notificación al cliente ──
     try {
       const qUsuario = query(
         collection(db, 'usuarios'),

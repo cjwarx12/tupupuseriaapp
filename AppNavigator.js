@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { View, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -14,6 +14,7 @@ import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import PedidoScreen from './screens/PedidoScreen';
 import ConfirmacionScreen from './screens/ConfirmacionScreen';
+import PedidoListoScreen from './screens/PedidoListoScreen';
 import RegistroPupuseriaScreen from './screens/RegistroPupuseriaScreen';
 import PanelPupuseriaScreen from './screens/PanelPupuseriaScreen';
 import SuscripcionVencidaScreen from './screens/SuscripcionVencidaScreen';
@@ -22,7 +23,6 @@ import GestionarMenuScreen from './screens/GestionarMenuScreen';
 
 const Stack = createNativeStackNavigator();
 
-// ── Configurar cómo se muestran las notificaciones cuando la app está abierta ──
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -31,13 +31,10 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// ── Obtener token y guardarlo en Firestore ──
 const guardarTokenCliente = async (uid) => {
   try {
     if (!Device.isDevice) return;
 
-    // ── Crear canal de notificaciones — OBLIGATORIO en Android 8+ ──
-    // Sin esto Android recibe la notificación pero la descarta silenciosamente
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
@@ -48,7 +45,6 @@ const guardarTokenCliente = async (uid) => {
       });
     }
 
-    // ── Pedir permiso para notificaciones ──
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -59,13 +55,11 @@ const guardarTokenCliente = async (uid) => {
 
     if (finalStatus !== 'granted') return;
 
-    // ── Obtener token — projectId obligatorio en SDK 55 ──
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: '0e8bb595-d919-426b-ba18-6d6717627795',
     });
     const token = tokenData.data;
 
-    // ── Guardar token en Firestore en el documento del cliente ──
     const qUsuario = query(
       collection(db, 'usuarios'),
       where('uid', '==', uid)
@@ -91,11 +85,43 @@ export default function AppNavigator() {
   const [mostrarSplash, setMostrarSplash] = useState(true);
   const [verificando, setVerificando] = useState(false);
 
+  const navigationRef = useRef(null);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setMostrarSplash(false);
     }, 2000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // ── Listeners de notificaciones ──
+  useEffect(() => {
+    // App en primer plano — navega automáticamente al llegar la notificación
+    const subForeground = Notifications.addNotificationReceivedListener(notification => {
+      const data = notification.request.content.data;
+      if (data?.tipo === 'pedido_listo' && navigationRef.current) {
+        navigationRef.current.navigate('PedidoListo', {
+          numeroPedido: data.numeroPedido,
+          nombrePupuseria: data.nombrePupuseria,
+        });
+      }
+    });
+
+    // App en segundo plano o cerrada — navega al tocar la notificación
+    const subBackground = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.tipo === 'pedido_listo' && navigationRef.current) {
+        navigationRef.current.navigate('PedidoListo', {
+          numeroPedido: data.numeroPedido,
+          nombrePupuseria: data.nombrePupuseria,
+        });
+      }
+    });
+
+    return () => {
+      subForeground.remove();
+      subBackground.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -110,7 +136,6 @@ export default function AppNavigator() {
           const snapshotPupuseria = await getDocsFromServer(qPupuseria);
 
           if (!snapshotPupuseria.empty) {
-            // ── Es DUEÑO ──
             const datosPupuseria = snapshotPupuseria.docs[0].data();
             const idPupuseria = snapshotPupuseria.docs[0].id;
             setEsDueno(true);
@@ -132,7 +157,6 @@ export default function AppNavigator() {
               setSuscripcionVencida(true);
             }
           } else {
-            // ── Es CLIENTE — guardar token para recibir notificaciones ──
             setEsDueno(false);
             setSuscripcionVencida(false);
             guardarTokenCliente(user.uid);
@@ -168,7 +192,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar backgroundColor="#FDF6EE" barStyle="dark-content" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {usuario ? (
@@ -199,6 +223,7 @@ export default function AppNavigator() {
                 <Stack.Screen name='Mapa' component={MapScreen} />
                 <Stack.Screen name='Pedido' component={PedidoScreen} />
                 <Stack.Screen name='Confirmacion' component={ConfirmacionScreen} />
+                <Stack.Screen name='PedidoListo' component={PedidoListoScreen} />
                 <Stack.Screen name='RegistroPupuseria' component={RegistroPupuseriaScreen} />
               </>
             )}
