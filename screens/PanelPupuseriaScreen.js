@@ -7,6 +7,9 @@ import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'f
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
+// ── Enviar notificación al cliente cuando su pedido está listo ──
+// Se agrega channelId: 'default' — obligatorio en Android para que
+// la notificación no sea descartada silenciosamente por el sistema
 const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
   try {
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -20,6 +23,7 @@ const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
         title: '🫓 ¡Tu pedido está listo!',
         body: `Tu pedido #${numeroPedido} en ${nombrePupuseria} ya está listo para recoger`,
         sound: 'default',
+        channelId: 'default',
         data: { tipo: 'pedido_listo' },
       }),
     });
@@ -153,18 +157,15 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
   const marcarListo = async (pedido, index) => {
     // ── PASO 1: Actualizar el pedido en Firestore ──────────────────
-    // Este try-catch es independiente. Si falla aquí, sí mostramos error.
     try {
       await updateDoc(doc(db, 'pedidos', pedido.id), { estado: 'listo' });
     } catch (error) {
       console.log('Error actualizando pedido:', error.code);
       Alert.alert('Error', 'No se pudo actualizar el pedido.');
-      return; // Salimos si no se pudo actualizar
+      return;
     }
 
-    // ── PASO 2: Enviar notificación (opcional, no bloquea) ─────────
-    // Si falla la notificación, el pedido YA quedó marcado como listo.
-    // No mostramos error al dueño por esto.
+    // ── PASO 2: Enviar notificación al cliente ─────────────────────
     try {
       const qUsuario = query(
         collection(db, 'usuarios'),
@@ -182,7 +183,6 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         }
       }
     } catch (error) {
-      // La notificación falló pero el pedido ya se actualizó — no pasa nada
       console.log('Notificacion no enviada:', error.code);
     }
   };

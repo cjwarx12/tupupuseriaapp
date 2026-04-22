@@ -34,17 +34,22 @@ Notifications.setNotificationHandler({
 // ── Obtener token y guardarlo en Firestore ──
 const guardarTokenCliente = async (uid) => {
   try {
-    console.log('=== INICIANDO TOKEN ===');
-    console.log('Device.isDevice:', Device.isDevice);
+    if (!Device.isDevice) return;
 
-    if (!Device.isDevice) {
-      console.log('NO es dispositivo físico - saliendo');
-      return;
+    // ── Crear canal de notificaciones — OBLIGATORIO en Android 8+ ──
+    // Sin esto Android recibe la notificación pero la descarta silenciosamente
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#D4850A',
+        sound: 'default',
+      });
     }
 
+    // ── Pedir permiso para notificaciones ──
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    console.log('Permiso actual:', existingStatus);
-
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
@@ -52,33 +57,28 @@ const guardarTokenCliente = async (uid) => {
       finalStatus = status;
     }
 
-    console.log('Permiso final:', finalStatus);
+    if (finalStatus !== 'granted') return;
 
-    if (finalStatus !== 'granted') {
-      console.log('Permiso denegado - saliendo');
-      return;
-    }
-
+    // ── Obtener token — projectId obligatorio en SDK 55 ──
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: '0e8bb595-d919-426b-ba18-6d6717627795',
     });
-    console.log('TOKEN OBTENIDO:', tokenData.data);
+    const token = tokenData.data;
 
+    // ── Guardar token en Firestore en el documento del cliente ──
     const qUsuario = query(
       collection(db, 'usuarios'),
       where('uid', '==', uid)
     );
     const snapshot = await getDocs(qUsuario);
-    console.log('Documento encontrado:', !snapshot.empty);
 
     if (!snapshot.empty) {
       const docRef = doc(db, 'usuarios', snapshot.docs[0].id);
-      await updateDoc(docRef, { tokenNotificacion: tokenData.data });
-      console.log('TOKEN GUARDADO EN FIRESTORE ✅');
+      await updateDoc(docRef, { tokenNotificacion: token });
     }
 
   } catch (error) {
-    console.log('ERROR en token:', error.message);
+    console.log('Error guardando token:', error);
   }
 };
 
