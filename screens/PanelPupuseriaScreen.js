@@ -7,9 +7,6 @@ import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'f
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 
-// ── Enviar notificación al cliente cuando su pedido está listo ──
-// Se agregan numeroPedido y nombrePupuseria en data para que
-// PedidoListoScreen los muestre al navegar automáticamente
 const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
   try {
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -37,7 +34,7 @@ const enviarNotificacion = async (token, numeroPedido, nombrePupuseria) => {
 };
 
 export default function PanelPupuseriaScreen({ route, navigation }) {
-  const { nombre } = route.params;
+  const { nombre, pupuseriaId } = route.params;
   const [pedidos, setPedidos] = useState([]);
   const [totalHoy, setTotalHoy] = useState(0);
   const [cargando, setCargando] = useState(true);
@@ -169,7 +166,9 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
       return;
     }
 
-    // ── PASO 2: Enviar notificación al cliente ──
+    // ── PASO 2: Enviar notificación solo si es pedido digital ──
+    if (pedido.tipo_pedido === 'local') return;
+
     try {
       const qUsuario = query(
         collection(db, 'usuarios'),
@@ -225,6 +224,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
 
   const renderPedido = ({ item, index }) => {
     const esListo = item.estado === 'listo';
+    const esLocal = item.tipo_pedido === 'local';
     const detalle = item.detalle || [];
 
     const pupusasMap = {};
@@ -244,6 +244,12 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
             <View style={[styles.badge, esListo ? styles.badgeListo : styles.badgePendiente]}>
               <Text style={styles.badgeTexto}>{esListo ? '✅ Listo' : '🕐 Pendiente'}</Text>
             </View>
+            {/* ── Badge En Local ── */}
+            {esLocal && (
+              <View style={styles.badgeLocal}>
+                <Text style={styles.badgeLocalTexto}>🏠 En Local</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.tiempoTexto}>{tiempoRelativo(item.fecha)}</Text>
         </View>
@@ -295,7 +301,7 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.botonEntregado} onPress={() => marcarEntregado(item.id)}>
-              <Text style={styles.botonEntregadoTexto}>📦 Cliente recogiendo...</Text>
+              <Text style={styles.botonEntregadoTexto}>📦 {esLocal ? 'Entregar en Local' : 'Cliente recogiendo...'}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -368,6 +374,17 @@ export default function PanelPupuseriaScreen({ route, navigation }) {
         <Text style={styles.enVivoTexto}>Escuchando pedidos en tiempo real</Text>
       </View>
 
+      {/* ── Botón Pedido en Local ── */}
+      <TouchableOpacity
+        style={styles.botonPedidoLocal}
+        onPress={() => navigation.navigate('PedidoLocal', {
+          pupuseriaId: pupuseriaId,
+          pupuseriaNombre: nombre,
+        })}
+      >
+        <Text style={styles.botonPedidoLocalTexto}>🏠 + Pedido en Local</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={pedidos}
         keyExtractor={item => item.id}
@@ -420,18 +437,26 @@ const styles = StyleSheet.create({
   },
   enVivoPunto: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
   enVivoTexto: { fontSize: 11, color: '#16A34A', fontWeight: '600' },
+  botonPedidoLocal: {
+    backgroundColor: '#2A1200', margin: 16, marginBottom: 4,
+    borderRadius: 12, padding: 14, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#D4850A',
+  },
+  botonPedidoLocalTexto: { color: '#D4850A', fontSize: 15, fontWeight: '800' },
   lista: { padding: 16, gap: 12 },
   tarjeta: { backgroundColor: '#2A1200', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#3A2008' },
   tarjetaLista: { borderColor: '#14532D', backgroundColor: '#0A1F12' },
   tarjetaHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
   },
-  tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tarjetaHeaderIzq: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   numeroPedido: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   badgePendiente: { backgroundColor: '#3A2800' },
   badgeListo: { backgroundColor: '#0A2A14' },
   badgeTexto: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  badgeLocal: { backgroundColor: '#1A3A5C', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
+  badgeLocalTexto: { fontSize: 11, fontWeight: '700', color: '#7EC8F4' },
   tiempoTexto: { fontSize: 11, color: '#7A5C3A' },
   tablaDetalle: {
     borderRadius: 8, overflow: 'hidden',

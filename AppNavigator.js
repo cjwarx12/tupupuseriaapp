@@ -17,6 +17,7 @@ import ConfirmacionScreen from './screens/ConfirmacionScreen';
 import PedidoListoScreen from './screens/PedidoListoScreen';
 import RegistroPupuseriaScreen from './screens/RegistroPupuseriaScreen';
 import PanelPupuseriaScreen from './screens/PanelPupuseriaScreen';
+import PedidoLocalScreen from './screens/PedidoLocalScreen';
 import SuscripcionVencidaScreen from './screens/SuscripcionVencidaScreen';
 import MiSaldoScreen from './screens/MiSaldoScreen';
 import GestionarMenuScreen from './screens/GestionarMenuScreen';
@@ -94,9 +95,7 @@ export default function AppNavigator() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Listeners de notificaciones ──
   useEffect(() => {
-    // App en primer plano — navega automáticamente al llegar la notificación
     const subForeground = Notifications.addNotificationReceivedListener(notification => {
       const data = notification.request.content.data;
       if (data?.tipo === 'pedido_listo' && navigationRef.current) {
@@ -107,7 +106,6 @@ export default function AppNavigator() {
       }
     });
 
-    // App en segundo plano o cerrada — navega al tocar la notificación
     const subBackground = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       if (data?.tipo === 'pedido_listo' && navigationRef.current) {
@@ -210,10 +208,11 @@ export default function AppNavigator() {
                     <Stack.Screen
                       name='PanelPupuseria'
                       component={PanelPupuseriaScreen}
-                      initialParams={{ nombre: nombrePupuseria }}
+                      initialParams={{ nombre: nombrePupuseria, pupuseriaId }}
                     />
                     <Stack.Screen name='MiSaldo' component={MiSaldoScreen} />
                     <Stack.Screen name='GestionarMenu' component={GestionarMenuScreen} />
+                    <Stack.Screen name='PedidoLocal' component={PedidoLocalScreen} />
                   </>
                 )}
               </>
